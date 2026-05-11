@@ -1,0 +1,1125 @@
+// ============================================================
+// FLETES BLACK — Schema Prisma Normalizado para MySQL
+// Versión: 2.0 | 49 tablas
+// Cambios vs ER original:
+//   - Eliminado: IoT (3 tablas), Backhaul (1 tabla)
+//   - Normalizado: arrays TEXT[]/UUID[] → tablas separadas
+//   - Convertido: tipos PostgreSQL → MySQL
+//   - Removidas: redundancias de user_type y campos biométricos
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum UserType {
+  ADMIN
+  CLIENT
+  TRANSPORTER
+}
+
+enum CarrierVerificationStatus {
+  PENDING
+  IN_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum DocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum FreightStatus {
+  PUBLISHED
+  ASSIGNED
+  IN_COLLECTION
+  IN_TRANSIT
+  DELIVERED
+  CLOSED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  IN_VALIDATION
+  APPROVED
+  PAID
+  REJECTED
+  REFUNDED
+}
+
+enum IncidentPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum DisputeStatus {
+  OPEN
+  IN_MEDIATION
+  RESOLVED
+  CLOSED
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  SYSTEM
+}
+
+enum DiscountOrigin {
+  REFERRAL
+  LOYALTY
+}
+
+enum SystemFailureType {
+  PAYMENT_ERROR
+  GPS_ERROR
+  NOTIFICATION_ERROR
+  AI_ERROR
+  AUTH_ERROR
+}
+
+enum GpsUpdateMechanism {
+  PWA
+  SATELLITE
+  HYBRID
+}
+
+// ============================================================
+// MÓDULO 1 — USUARIOS Y AUTENTICACIÓN
+// ============================================================
+
+model Role {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(50)
+  userType  UserType @map("user_type")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  users           User[]
+  rolePermissions RolePermission[]
+  roleChangesFrom RoleChangeLog[]  @relation("OldRole")
+  roleChangesTo   RoleChangeLog[]  @relation("NewRole")
+
+  @@map("roles")
+}
+
+model Permission {
+  id          Int    @id @default(autoincrement())
+  code        String @unique @db.VarChar(100)
+  module      String @db.VarChar(50)
+  description String @db.Text
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       Int @map("role_id")
+  permissionId Int @map("permission_id")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model User {
+  id                    Int       @id @default(autoincrement())
+  roleId                Int       @map("role_id")
+  firstName             String    @db.VarChar(100) @map("first_name")
+  lastName              String    @db.VarChar(100) @map("last_name")
+  email                 String    @unique @db.VarChar(150)
+  phone                 String?   @db.VarChar(20)
+  passwordHash          String    @db.Text @map("password_hash")
+  isGuest               Boolean   @default(false) @map("is_guest")
+  guestTrackingFolio    String?   @unique @db.VarChar(20) @map("guest_tracking_folio")
+  twoFactorEnabled      Boolean   @default(false) @map("two_factor_enabled")
+  privacyPolicyAccepted Boolean   @default(false) @map("privacy_policy_accepted")
+  failedLoginAttempts   Int       @default(0) @db.SmallInt @map("failed_login_attempts")
+  lockedUntil           DateTime? @map("locked_until")
+  deletionRequestedAt   DateTime? @map("deletion_requested_at")
+  anonymizedAt          DateTime? @map("anonymized_at")
+  createdAt             DateTime  @default(now()) @map("created_at")
+
+  role Role @relation(fields: [roleId], references: [id])
+
+  authTokens           UserAuthToken[]
+  guestLinks           GuestAccountLink[] @relation("GuestUser")
+  registeredLinks      GuestAccountLink[] @relation("RegisteredUser")
+  roleChanges          RoleChangeLog[]    @relation("UserRoleChange")
+  roleChangesBy        RoleChangeLog[]    @relation("ChangedBy")
+  addresses            UserAddress[]
+  privacyConsents      UserPrivacyConsent[]
+  carrierProfile       CarrierProfile?
+  freightsAsShipper    Freight[]          @relation("Shipper")
+  freightsAsCarrier    Freight[]          @relation("Carrier")
+  freightsCancelled    Freight[]          @relation("CancelledBy")
+  statusChanges        FreightStatusHistory[]
+  reschedules          FreightReschedule[]
+  bids                 Bid[]              @relation("CarrierBid")
+  bidsResponded        Bid[]              @relation("BidResponded")
+  documentsUploaded    FreightDocument[]  @relation("DocumentUploader")
+  documentsValidated   FreightDocument[]  @relation("DocumentValidator")
+  gpsTracking          FreightGpsTracking[]
+  trackingAccess       FreightTrackingAccess[]
+  wallet               DigitalWallet?
+  paymentsMade         Payment[]          @relation("Payer")
+  paymentsReceived     Payment[]          @relation("Payee")
+  paymentsReviewed     Payment[]          @relation("ReviewedBy")
+  paymentStatusChanges PaymentStatusHistory[]
+  reconciliations      PaymentReconciliation[]
+  incidentsReported    Incident[]         @relation("ReportedBy")
+  incidentsAssigned    Incident[]         @relation("AssignedTo")
+  disputesOpened       Dispute[]          @relation("OpenedBy")
+  disputesAgainst      Dispute[]          @relation("AgainstUser")
+  disputesMediated     Dispute[]          @relation("Mediator")
+  systemFailures       SystemFailureLog[]
+  notifications        Notification[]
+  messages             FreightMessage[]
+  discountPrograms     DiscountProgram[]
+  referralCodes        ReferralCode[]
+  referralUses         ReferralUse[]
+  loyalty              UserLoyalty[]
+  loyaltySuspended     UserLoyalty[]      @relation("SuspendedBy")
+  appliedDiscounts     AppliedDiscount[]
+  discountSuspensions  DiscountSuspensionLog[] @relation("Suspended")
+  discountSuspendedBy  DiscountSuspensionLog[] @relation("SuspendedBy")
+  discountLiftedBy     DiscountSuspensionLog[] @relation("LiftedBy")
+  auditLogs            AuditLog[]
+  savedReports         SavedReport[]
+  paymentConfigs       PaymentConfig[]
+
+  @@map("users")
+}
+
+model UserAuthToken {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  tokenHash String    @unique @db.VarChar(255) @map("token_hash")
+  type      String    @db.VarChar(30)
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_auth_tokens")
+}
+
+model GuestAccountLink {
+  id               Int      @id @default(autoincrement())
+  guestUserId      Int      @map("guest_user_id")
+  registeredUserId Int      @map("registered_user_id")
+  validationMethod String   @db.VarChar(30) @map("validation_method")
+  validatedAt      DateTime @map("validated_at")
+
+  guestUser      User @relation("GuestUser", fields: [guestUserId], references: [id])
+  registeredUser User @relation("RegisteredUser", fields: [registeredUserId], references: [id])
+
+  @@map("guest_account_links")
+}
+
+model RoleChangeLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  oldRoleId Int      @map("old_role_id")
+  newRoleId Int      @map("new_role_id")
+  changedBy Int      @map("changed_by")
+  reason    String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User @relation("UserRoleChange", fields: [userId], references: [id])
+  oldRole Role @relation("OldRole", fields: [oldRoleId], references: [id])
+  newRole Role @relation("NewRole", fields: [newRoleId], references: [id])
+  changer User @relation("ChangedBy", fields: [changedBy], references: [id])
+
+  @@map("role_change_log")
+}
+
+model UserAddress {
+  id        Int     @id @default(autoincrement())
+  userId    Int     @map("user_id")
+  alias     String  @db.VarChar(50)
+  street    String  @db.Text
+  city      String  @db.VarChar(100)
+  country   String  @default("MX") @db.VarChar(3)
+  lat       Decimal @db.Decimal(10, 8)
+  lng       Decimal @db.Decimal(11, 8)
+  isDefault Boolean @default(false) @map("is_default")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_addresses")
+}
+
+model PrivacyPolicy {
+  id            Int      @id @default(autoincrement())
+  version       String   @db.VarChar(20)
+  regulation    String   @db.VarChar(50)
+  contentUrl    String   @db.Text @map("content_url")
+  effectiveDate DateTime @map("effective_date")
+
+  consents UserPrivacyConsent[]
+
+  @@map("privacy_policies")
+}
+
+model UserPrivacyConsent {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  policyId   Int      @map("policy_id")
+  accepted   Boolean
+  ipAddress  String?  @db.VarChar(45) @map("ip_address")
+  acceptedAt DateTime @default(now()) @map("accepted_at")
+
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  policy PrivacyPolicy @relation(fields: [policyId], references: [id])
+
+  @@map("user_privacy_consents")
+}
+
+// ============================================================
+// MÓDULO 2 — TRANSPORTISTAS
+// ============================================================
+
+model CarrierProfile {
+  id                     Int                       @id @default(autoincrement())
+  userId                 Int                       @unique @map("user_id")
+  verificationStatus     CarrierVerificationStatus @default(PENDING) @map("verification_status")
+  licenseNumber          String?                   @db.VarChar(50) @map("license_number")
+  licenseExpiry          DateTime?                 @map("license_expiry")
+  licenseValidationSource String?                  @db.VarChar(50) @map("license_validation_source")
+  available              Boolean                   @default(false)
+  currentLat             Decimal?                  @db.Decimal(10, 8) @map("current_lat")
+  currentLng             Decimal?                  @db.Decimal(11, 8) @map("current_lng")
+  ratingAvg              Decimal                   @default(0) @db.Decimal(3, 2) @map("rating_avg")
+  rfc                    String?                   @db.VarChar(13)
+  reviewedAt             DateTime?                 @map("reviewed_at")
+
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents CarrierDocument[]
+  vehicles  CarrierVehicle[]
+
+  @@map("carrier_profiles")
+}
+
+model CarrierDocument {
+  id              Int            @id @default(autoincrement())
+  carrierId       Int            @map("carrier_id")
+  documentType    String         @db.VarChar(50) @map("document_type")
+  fileUrl         String         @db.Text @map("file_url")
+  status          DocumentStatus @default(PENDING)
+  ocrData         Json?          @map("ocr_data")
+  rejectionReason String?        @db.Text @map("rejection_reason")
+  expiresAt       DateTime?      @map("expires_at")
+
+  carrier CarrierProfile @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+
+  @@map("carrier_documents")
+}
+
+model CarrierVehicle {
+  id              Int     @id @default(autoincrement())
+  carrierId       Int     @map("carrier_id")
+  plateNumber     String  @unique @db.VarChar(20) @map("plate_number")
+  vehicleType     String  @db.VarChar(50) @map("vehicle_type")
+  maxWeightKg     Decimal @db.Decimal(8, 2) @map("max_weight_kg")
+  maxVolumeM3     Decimal @db.Decimal(8, 2) @map("max_volume_m3")
+  hasRefrigeration Boolean @default(false) @map("has_refrigeration")
+  isActive        Boolean @default(true) @map("is_active")
+
+  carrier  CarrierProfile @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+  freights Freight[]
+  bids     Bid[]
+
+  @@map("carrier_vehicles")
+}
+
+// ============================================================
+// MÓDULO 3 — FLETES
+// ============================================================
+
+model FreightCategory {
+  id                  Int     @id @default(autoincrement())
+  name                String  @db.VarChar(100)
+  requiresRefrigeration Boolean @default(false) @map("requires_refrigeration")
+  isActive            Boolean @default(true) @map("is_active")
+
+  freights Freight[]
+
+  @@map("freight_categories")
+}
+
+model Freight {
+  id                      Int           @id @default(autoincrement())
+  trackingFolio           String        @unique @db.VarChar(20) @map("tracking_folio")
+  shipperId               Int           @map("shipper_id")
+  carrierId               Int?          @map("carrier_id")
+  vehicleId               Int?          @map("vehicle_id")
+  categoryId              Int?          @map("category_id")
+  status                  FreightStatus @default(PUBLISHED)
+  originAddress           String        @db.Text @map("origin_address")
+  originCity              String        @db.VarChar(100) @map("origin_city")
+  originLat               Decimal?      @db.Decimal(10, 8) @map("origin_lat")
+  originLng               Decimal?      @db.Decimal(11, 8) @map("origin_lng")
+  destinationAddress      String        @db.Text @map("destination_address")
+  destinationCity         String        @db.VarChar(100) @map("destination_city")
+  destinationLat          Decimal?      @db.Decimal(10, 8) @map("destination_lat")
+  destinationLng          Decimal?      @db.Decimal(11, 8) @map("destination_lng")
+  cargoType               String?       @db.VarChar(50) @map("cargo_type")
+  weightKg                Decimal?      @db.Decimal(8, 2) @map("weight_kg")
+  volumeM3                Decimal?      @db.Decimal(8, 2) @map("volume_m3")
+  estimatedCollectionAt   DateTime?     @map("estimated_collection_at")
+  actualDeliveryAt        DateTime?     @map("actual_delivery_at")
+  basePrice               Decimal?      @db.Decimal(10, 2) @map("base_price")
+  finalPrice              Decimal?      @db.Decimal(10, 2) @map("final_price")
+  pricingMethod           String?       @db.VarChar(30) @map("pricing_method")
+  cancelledAt             DateTime?     @map("cancelled_at")
+  cancelledBy             Int?          @map("cancelled_by")
+  cartaPorteNumber        String?       @db.VarChar(50) @map("carta_porte_number")
+  bidDeadline             DateTime?     @map("bid_deadline")
+  createdAt               DateTime      @default(now()) @map("created_at")
+  updatedAt               DateTime      @updatedAt @map("updated_at")
+
+  shipper        User             @relation("Shipper", fields: [shipperId], references: [id])
+  carrier        User?            @relation("Carrier", fields: [carrierId], references: [id])
+  vehicle        CarrierVehicle?  @relation(fields: [vehicleId], references: [id])
+  category       FreightCategory? @relation(fields: [categoryId], references: [id])
+  cancelledByUser User?           @relation("CancelledBy", fields: [cancelledBy], references: [id])
+
+  statusHistory    FreightStatusHistory[]
+  waypoints        FreightWaypoint[]
+  reschedules      FreightReschedule[]
+  bids             Bid[]
+  documents        FreightDocument[]
+  gpsTracking      FreightGpsTracking[]
+  trackingAccess   FreightTrackingAccess[]
+  routeCalculations RouteCalculation[]
+  incidents        Incident[]
+  disputes         Dispute[]
+  systemFailures   SystemFailureLog[]
+  notifications    Notification[]
+  messages         FreightMessage[]
+  referralUses     ReferralUse[]
+  appliedDiscounts AppliedDiscount[]
+  payment          Payment?
+  freightItems     FreightItem[]
+
+  @@map("freights")
+}
+
+// Objetos cotizados dentro del flete (resultado del análisis IA)
+model FreightItem {
+  id               Int     @id @default(autoincrement())
+  freightId        Int     @map("freight_id")
+  name             String  @db.VarChar(100)
+  category         String  @db.VarChar(20)
+  weightKg         Decimal? @db.Decimal(8, 2) @map("weight_kg")
+  lengthCm         Decimal? @db.Decimal(8, 2) @map("length_cm")
+  widthCm          Decimal? @db.Decimal(8, 2) @map("width_cm")
+  heightCm         Decimal? @db.Decimal(8, 2) @map("height_cm")
+  isIrregular      Boolean @default(false) @map("is_irregular")
+  difficulty       String  @default("normal") @db.VarChar(20)
+  basePrice        Decimal @db.Decimal(10, 2) @map("base_price")
+  difficultyCharge Decimal @default(0) @db.Decimal(10, 2) @map("difficulty_charge")
+  irregularCharge  Decimal @default(0) @db.Decimal(10, 2) @map("irregular_charge")
+  subtotal         Decimal @db.Decimal(10, 2)
+  aiConfidence     Int?    @db.SmallInt @map("ai_confidence")
+  priceNote        String? @db.VarChar(200) @map("price_note")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  freight Freight @relation(fields: [freightId], references: [id], onDelete: Cascade)
+
+  @@map("freight_items")
+}
+
+model FreightStatusHistory {
+  id           Int           @id @default(autoincrement())
+  freightId    Int           @map("freight_id")
+  fromStatus   FreightStatus @map("from_status")
+  toStatus     FreightStatus @map("to_status")
+  changedBy    Int           @map("changed_by")
+  changeReason String?       @db.Text @map("change_reason")
+  createdAt    DateTime      @default(now()) @map("created_at")
+
+  freight Freight @relation(fields: [freightId], references: [id], onDelete: Cascade)
+  changer User    @relation(fields: [changedBy], references: [id])
+
+  @@map("freight_status_history")
+}
+
+model FreightStatePermission {
+  id            Int           @id @default(autoincrement())
+  fromStatus    FreightStatus @map("from_status")
+  toStatus      FreightStatus @map("to_status")
+  allowedRole   UserType      @map("allowed_role")
+  requiresReason Boolean      @default(false) @map("requires_reason")
+
+  @@unique([fromStatus, toStatus, allowedRole])
+  @@map("freight_state_permissions")
+}
+
+model FreightWaypoint {
+  id               Int      @id @default(autoincrement())
+  freightId        Int      @map("freight_id")
+  sequenceOrder    Int      @db.SmallInt @map("sequence_order")
+  address          String   @db.Text
+  city             String   @db.VarChar(100)
+  lat              Decimal  @db.Decimal(10, 8)
+  lng              Decimal  @db.Decimal(11, 8)
+  estimatedArrival DateTime? @map("estimated_arrival")
+  actualArrival    DateTime? @map("actual_arrival")
+
+  freight Freight @relation(fields: [freightId], references: [id], onDelete: Cascade)
+
+  @@map("freight_waypoints")
+}
+
+model FreightReschedule {
+  id             Int      @id @default(autoincrement())
+  freightId      Int      @map("freight_id")
+  rescheduleType String   @db.VarChar(30) @map("reschedule_type")
+  oldDatetime    DateTime @map("old_datetime")
+  newDatetime    DateTime @map("new_datetime")
+  requestedBy    Int      @map("requested_by")
+  reason         String?  @db.Text
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  freight     Freight @relation(fields: [freightId], references: [id], onDelete: Cascade)
+  requestedByUser User @relation(fields: [requestedBy], references: [id])
+
+  @@map("freight_reschedules")
+}
+
+// ============================================================
+// MÓDULO 4 — LICITACIONES
+// ============================================================
+
+model Bid {
+  id               Int      @id @default(autoincrement())
+  freightId        Int      @map("freight_id")
+  carrierId        Int      @map("carrier_id")
+  vehicleId        Int      @map("vehicle_id")
+  proposedPrice    Decimal  @db.Decimal(10, 2) @map("proposed_price")
+  status           String   @default("PENDING") @db.VarChar(20)
+  autoAssigned     Boolean  @default(false) @map("auto_assigned")
+  responseDeadline DateTime? @map("response_deadline")
+  respondedAt      DateTime? @map("responded_at")
+  respondedBy      Int?     @map("responded_by")
+  rejectionReason  String?  @db.Text @map("rejection_reason")
+  reassignedToBidId Int?    @map("reassigned_to_bid_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  freight       Freight        @relation(fields: [freightId], references: [id], onDelete: Cascade)
+  carrier       User           @relation("CarrierBid", fields: [carrierId], references: [id])
+  vehicle       CarrierVehicle @relation(fields: [vehicleId], references: [id])
+  responder     User?          @relation("BidResponded", fields: [respondedBy], references: [id])
+  reassignedTo  Bid?           @relation("BidReassignment", fields: [reassignedToBidId], references: [id])
+  reassignments Bid[]          @relation("BidReassignment")
+
+  @@map("bids")
+}
+
+// ============================================================
+// MÓDULO 5 — DOCUMENTOS
+// ============================================================
+
+model DocumentValidationRule {
+  id               Int     @id @default(autoincrement())
+  documentType     String  @unique @db.VarChar(50) @map("document_type")
+  acceptedFormats  Json    @map("accepted_formats")
+  maxSizeMb        Decimal @db.Decimal(5, 2) @map("max_size_mb")
+  minOcrConfidence Decimal @db.Decimal(5, 2) @map("min_ocr_confidence")
+  requiredOcrFields Json   @map("required_ocr_fields")
+  validityDays     Int     @map("validity_days")
+  isActive         Boolean @default(true) @map("is_active")
+
+  @@map("document_validation_rules")
+}
+
+model FreightDocument {
+  id              Int            @id @default(autoincrement())
+  freightId       Int            @map("freight_id")
+  uploadedBy      Int            @map("uploaded_by")
+  documentType    String         @db.VarChar(50) @map("document_type")
+  fileUrl         String         @db.Text @map("file_url")
+  status          DocumentStatus @default(PENDING)
+  ocrData         Json?          @map("ocr_data")
+  ocrConfidence   Decimal?       @db.Decimal(5, 2) @map("ocr_confidence")
+  validationErrors Json?         @map("validation_errors")
+  rejectionReason String?        @db.Text @map("rejection_reason")
+  autoValidated   Boolean        @default(false) @map("auto_validated")
+  validatedBy     Int?           @map("validated_by")
+  isCartaPorte    Boolean        @default(false) @map("is_carta_porte")
+  expiresAt       DateTime?      @map("expires_at")
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  freight   Freight @relation(fields: [freightId], references: [id], onDelete: Cascade)
+  uploader  User    @relation("DocumentUploader", fields: [uploadedBy], references: [id])
+  validator User?   @relation("DocumentValidator", fields: [validatedBy], references: [id])
+
+  @@map("freight_documents")
+}
+
+// ============================================================
+// MÓDULO 6 — GPS Y VISIBILIDAD
+// ============================================================
+
+model GpsConfig {
+  id                Int                @id @default(autoincrement())
+  freightType       String             @db.VarChar(50) @map("freight_type")
+  updateIntervalSec Int                @db.SmallInt @map("update_interval_sec")
+  mechanism         GpsUpdateMechanism @default(PWA)
+  retentionDays     Int                @db.SmallInt @map("retention_days")
+  isActive          Boolean            @default(true) @map("is_active")
+
+  @@map("gps_config")
+}
+
+model FreightGpsTracking {
+  id         Int      @id @default(autoincrement())
+  freightId  Int      @map("freight_id")
+  carrierId  Int      @map("carrier_id")
+  lat        Decimal  @db.Decimal(10, 8)
+  lng        Decimal  @db.Decimal(11, 8)
+  speedKmh   Decimal? @db.Decimal(6, 2) @map("speed_kmh")
+  headingDeg Decimal? @db.Decimal(5, 2) @map("heading_deg")
+  recordedAt DateTime @default(now()) @map("recorded_at")
+
+  freight Freight @relation(fields: [freightId], references: [id], onDelete: Cascade)
+  carrier User    @relation(fields: [carrierId], references: [id])
+
+  @@index([freightId, recordedAt])
+  @@map("freight_gps_tracking")
+}
+
+model FreightTrackingAccess {
+  id          Int      @id @default(autoincrement())
+  freightId   Int      @map("freight_id")
+  userId      Int?     @map("user_id")
+  accessType  String   @db.VarChar(20) @map("access_type")
+  folioUsed   String?  @db.VarChar(20) @map("folio_used")
+  validatedAt DateTime @default(now()) @map("validated_at")
+  expiresAt   DateTime @map("expires_at")
+
+  freight Freight @relation(fields: [freightId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id])
+
+  @@map("freight_tracking_access")
+}
+
+// ============================================================
+// MÓDULO 7 — RUTAS
+// ============================================================
+
+model RouteCalculation {
+  id              Int      @id @default(autoincrement())
+  freightId       Int      @map("freight_id")
+  routeType       String   @db.VarChar(30) @map("route_type")
+  routeGeometry   Json?    @map("route_geometry")
+  distanceKm      Decimal  @db.Decimal(8, 2) @map("distance_km")
+  durationMin     Decimal  @db.Decimal(8, 2) @map("duration_min")
+  fuelCostMxn     Decimal? @db.Decimal(10, 2) @map("fuel_cost_mxn")
+  tollsCostMxn    Decimal? @db.Decimal(10, 2) @map("tolls_cost_mxn")
+  totalCostMxn    Decimal? @db.Decimal(10, 2) @map("total_cost_mxn")
+  trafficFactor   Decimal? @db.Decimal(4, 2) @map("traffic_factor")
+  weatherFactor   Decimal? @db.Decimal(4, 2) @map("weather_factor")
+  isActive        Boolean  @default(true) @map("is_active")
+  isDynamicUpdate Boolean  @default(false) @map("is_dynamic_update")
+  updateReason    String?  @db.Text @map("update_reason")
+  previousRouteId Int?     @map("previous_route_id")
+  dataSources     Json?    @map("data_sources")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  freight       Freight           @relation(fields: [freightId], references: [id], onDelete: Cascade)
+  previousRoute RouteCalculation? @relation("RouteHistory", fields: [previousRouteId], references: [id])
+  nextRoutes    RouteCalculation[] @relation("RouteHistory")
+  incidents     RouteIncident[]
+
+  @@map("route_calculations")
+}
+
+model RouteIncident {
+  id           Int      @id @default(autoincrement())
+  routeId      Int      @map("route_id")
+  incidentType String   @db.VarChar(50) @map("incident_type")
+  severity     String   @db.VarChar(20)
+  lat          Decimal? @db.Decimal(10, 8)
+  lng          Decimal? @db.Decimal(11, 8)
+  detectedAt   DateTime @default(now()) @map("detected_at")
+  resolvedAt   DateTime? @map("resolved_at")
+
+  route RouteCalculation @relation(fields: [routeId], references: [id], onDelete: Cascade)
+
+  @@map("route_incidents")
+}
+
+// ============================================================
+// MÓDULO 8 — PAGOS Y FINANZAS
+// ============================================================
+
+model DigitalWallet {
+  id               Int     @id @default(autoincrement())
+  userId           Int     @unique @map("user_id")
+  balance          Decimal @default(0) @db.Decimal(10, 2)
+  currency         String  @default("MXN") @db.Char(3)
+  isActive         Boolean @default(true) @map("is_active")
+  bankAccountClabe String? @db.VarChar(18) @map("bank_account_clabe")
+  bankName         String? @db.VarChar(100) @map("bank_name")
+  verifiedBank     Boolean @default(false) @map("verified_bank")
+
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentsPaid    Payment[]       @relation("PayerWallet")
+  paymentsReceived Payment[]      @relation("PayeeWallet")
+  withdrawals WalletWithdrawal[]
+
+  @@map("digital_wallets")
+}
+
+model PaymentConfig {
+  id                       Int     @id @default(autoincrement())
+  maxAutoPaymentMxn        Decimal @db.Decimal(10, 2) @map("max_auto_payment_mxn")
+  platformCommissionPct    Decimal @db.Decimal(5, 2) @map("platform_commission_pct")
+  paymentReleaseHours      Int     @db.SmallInt @map("payment_release_hours")
+  acceleratedPaymentEnabled Boolean @default(false) @map("accelerated_payment_enabled")
+  updatedBy                Int     @map("updated_by")
+  updatedAt                DateTime @updatedAt @map("updated_at")
+
+  updater User @relation(fields: [updatedBy], references: [id])
+
+  @@map("payment_config")
+}
+
+model Payment {
+  id                  Int           @id @default(autoincrement())
+  freightId           Int           @unique @map("freight_id")
+  payerId             Int           @map("payer_id")
+  payeeId             Int           @map("payee_id")
+  payerWalletId       Int?          @map("payer_wallet_id")
+  payeeWalletId       Int?          @map("payee_wallet_id")
+  baseAmount          Decimal       @db.Decimal(10, 2) @map("base_amount")
+  discountAmount      Decimal       @default(0) @db.Decimal(10, 2) @map("discount_amount")
+  platformCommission  Decimal       @default(0) @db.Decimal(10, 2) @map("platform_commission")
+  finalAmount         Decimal       @db.Decimal(10, 2) @map("final_amount")
+  carrierNetAmount    Decimal       @db.Decimal(10, 2) @map("carrier_net_amount")
+  status              PaymentStatus @default(PENDING)
+  paymentMethod       String?       @db.VarChar(30) @map("payment_method")
+  referenceFolio      String?       @unique @db.VarChar(30) @map("reference_folio")
+  requiresManualReview Boolean      @default(false) @map("requires_manual_review")
+  manualReviewReason  String?       @db.Text @map("manual_review_reason")
+  reviewedBy          Int?          @map("reviewed_by")
+  autoReleased        Boolean       @default(false) @map("auto_released")
+  releaseConditions   Json?         @map("release_conditions")
+  paidAt              DateTime?     @map("paid_at")
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+
+  freight      Freight        @relation(fields: [freightId], references: [id])
+  payer        User           @relation("Payer", fields: [payerId], references: [id])
+  payee        User           @relation("Payee", fields: [payeeId], references: [id])
+  payerWallet  DigitalWallet? @relation("PayerWallet", fields: [payerWalletId], references: [id])
+  payeeWallet  DigitalWallet? @relation("PayeeWallet", fields: [payeeWalletId], references: [id])
+  reviewer     User?          @relation("ReviewedBy", fields: [reviewedBy], references: [id])
+
+  statusHistory   PaymentStatusHistory[]
+  receipt         PaymentReceipt?
+  reconciliation  PaymentReconciliation?
+
+  @@map("payments")
+}
+
+model PaymentStatusHistory {
+  id           Int           @id @default(autoincrement())
+  paymentId    Int           @map("payment_id")
+  fromStatus   PaymentStatus @map("from_status")
+  toStatus     PaymentStatus @map("to_status")
+  changedBy    Int           @map("changed_by")
+  changeReason String?       @db.Text @map("change_reason")
+  createdAt    DateTime      @default(now()) @map("created_at")
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  changer User    @relation(fields: [changedBy], references: [id])
+
+  @@map("payment_status_history")
+}
+
+model PaymentReceipt {
+  id            Int      @id @default(autoincrement())
+  paymentId     Int      @unique @map("payment_id")
+  receiptNumber String   @unique @db.VarChar(30) @map("receipt_number")
+  fileUrl       String   @db.Text @map("file_url")
+  xmlUrl        String?  @db.Text @map("xml_url")
+  generatedAt   DateTime @default(now()) @map("generated_at")
+
+  payment Payment @relation(fields: [paymentId], references: [id])
+
+  @@map("payment_receipts")
+}
+
+model WalletWithdrawal {
+  id            Int      @id @default(autoincrement())
+  walletId      Int      @map("wallet_id")
+  amount        Decimal  @db.Decimal(10, 2)
+  status        String   @default("PENDING") @db.VarChar(20)
+  bankClabe     String   @db.VarChar(18) @map("bank_clabe")
+  bankReference String?  @db.VarChar(50) @map("bank_reference")
+  requestedAt   DateTime @default(now()) @map("requested_at")
+  processedAt   DateTime? @map("processed_at")
+  failureReason String?  @db.Text @map("failure_reason")
+
+  wallet DigitalWallet @relation(fields: [walletId], references: [id])
+
+  @@map("wallet_withdrawals")
+}
+
+model PaymentReconciliation {
+  id              Int      @id @default(autoincrement())
+  paymentId       Int      @unique @map("payment_id")
+  shipperCharge   Decimal  @db.Decimal(10, 2) @map("shipper_charge")
+  carrierPayment  Decimal  @db.Decimal(10, 2) @map("carrier_payment")
+  platformRevenue Decimal  @db.Decimal(10, 2) @map("platform_revenue")
+  discountsTotal  Decimal  @default(0) @db.Decimal(10, 2) @map("discounts_total")
+  balanceCheck    Decimal  @db.Decimal(10, 2) @map("balance_check")
+  reconciledAt    DateTime @default(now()) @map("reconciled_at")
+  reconciledBy    Int      @map("reconciled_by")
+
+  payment      Payment @relation(fields: [paymentId], references: [id])
+  reconciledByUser User @relation(fields: [reconciledBy], references: [id])
+
+  @@map("payment_reconciliations")
+}
+
+// ============================================================
+// MÓDULO 9 — INCIDENTES Y DISPUTAS
+// ============================================================
+
+model IncidentSlaConfig {
+  id                  Int              @id @default(autoincrement())
+  priority            IncidentPriority @unique
+  maxResponseHours    Int              @db.SmallInt @map("max_response_hours")
+  escalationHours     Int              @db.SmallInt @map("escalation_hours")
+  notifyAdminOnBreach Boolean          @default(true) @map("notify_admin_on_breach")
+
+  @@map("incident_sla_config")
+}
+
+model Incident {
+  id              Int              @id @default(autoincrement())
+  freightId       Int              @map("freight_id")
+  reportedBy      Int              @map("reported_by")
+  incidentType    String           @db.VarChar(50) @map("incident_type")
+  priority        IncidentPriority @default(MEDIUM)
+  description     String           @db.Text
+  status          String           @default("OPEN") @db.VarChar(20)
+  slaDeadline     DateTime?        @map("sla_deadline")
+  slaBreached     Boolean          @default(false) @map("sla_breached")
+  assignedTo      Int?             @map("assigned_to")
+  resolutionNotes String?          @db.Text @map("resolution_notes")
+  resolvedAt      DateTime?        @map("resolved_at")
+  createdAt       DateTime         @default(now()) @map("created_at")
+
+  freight    Freight   @relation(fields: [freightId], references: [id])
+  reporter   User      @relation("ReportedBy", fields: [reportedBy], references: [id])
+  assignee   User?     @relation("AssignedTo", fields: [assignedTo], references: [id])
+  evidences  IncidentEvidence[]
+  disputes   Dispute[]
+
+  @@map("incidents")
+}
+
+// Normalización de TEXT[] evidence_urls
+model IncidentEvidence {
+  id         Int      @id @default(autoincrement())
+  incidentId Int      @map("incident_id")
+  fileUrl    String   @db.Text @map("file_url")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@map("incident_evidence")
+}
+
+model Dispute {
+  id            Int           @id @default(autoincrement())
+  freightId     Int           @map("freight_id")
+  incidentId    Int?          @map("incident_id")
+  openedBy      Int           @map("opened_by")
+  againstUserId Int           @map("against_user_id")
+  disputeType   String        @db.VarChar(50) @map("dispute_type")
+  status        DisputeStatus @default(OPEN)
+  mediatorId    Int?          @map("mediator_id")
+  resolution    String?       @db.Text
+  resolvedAt    DateTime?     @map("resolved_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  freight     Freight   @relation(fields: [freightId], references: [id])
+  incident    Incident? @relation(fields: [incidentId], references: [id])
+  opener      User      @relation("OpenedBy", fields: [openedBy], references: [id])
+  againstUser User      @relation("AgainstUser", fields: [againstUserId], references: [id])
+  mediator    User?     @relation("Mediator", fields: [mediatorId], references: [id])
+
+  @@map("disputes")
+}
+
+model SystemFailureLog {
+  id           Int               @id @default(autoincrement())
+  failureType  SystemFailureType @map("failure_type")
+  freightId    Int?              @map("freight_id")
+  userId       Int?              @map("user_id")
+  errorMessage String            @db.Text @map("error_message")
+  errorDetail  Json?             @map("error_detail")
+  retryCount   Int               @default(0) @db.SmallInt @map("retry_count")
+  resolved     Boolean           @default(false)
+  notifiedUser Boolean           @default(false) @map("notified_user")
+  createdAt    DateTime          @default(now()) @map("created_at")
+
+  freight Freight? @relation(fields: [freightId], references: [id])
+  user    User?    @relation(fields: [userId], references: [id])
+
+  @@map("system_failure_log")
+}
+
+// ============================================================
+// MÓDULO 10 — NOTIFICACIONES Y COMUNICACIÓN
+// ============================================================
+
+model Notification {
+  id         Int      @id @default(autoincrement())
+  userId     Int?     @map("user_id")
+  guestFolio String?  @db.VarChar(20) @map("guest_folio")
+  freightId  Int?     @map("freight_id")
+  eventType  String   @db.VarChar(50) @map("event_type")
+  title      String   @db.VarChar(150)
+  body       String   @db.Text
+  channel    String   @db.VarChar(20)
+  isRead     Boolean  @default(false) @map("is_read")
+  sentAt     DateTime @default(now()) @map("sent_at")
+
+  user    User?    @relation(fields: [userId], references: [id])
+  freight Freight? @relation(fields: [freightId], references: [id])
+
+  @@map("notifications")
+}
+
+model FreightMessage {
+  id        Int         @id @default(autoincrement())
+  freightId Int         @map("freight_id")
+  senderId  Int         @map("sender_id")
+  type      MessageType @default(TEXT)
+  content   String?     @db.Text
+  fileUrl   String?     @db.Text @map("file_url")
+  isSystem  Boolean     @default(false) @map("is_system")
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  freight Freight @relation(fields: [freightId], references: [id], onDelete: Cascade)
+  sender  User    @relation(fields: [senderId], references: [id])
+  reads   MessageRead[]
+
+  @@map("freight_messages")
+}
+
+// Normalización de UUID[] read_by
+model MessageRead {
+  messageId Int      @map("message_id")
+  userId    Int      @map("user_id")
+  readAt    DateTime @default(now()) @map("read_at")
+
+  message FreightMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@id([messageId, userId])
+  @@map("message_reads")
+}
+
+// ============================================================
+// MÓDULO 11 — DESCUENTOS, LEALTAD Y REFERIDOS
+// ============================================================
+
+model DiscountProgram {
+  id                     Int            @id @default(autoincrement())
+  name                   String         @db.VarChar(100)
+  type                   DiscountOrigin
+  isActive               Boolean        @default(true) @map("is_active")
+  referrerBenefitPct     Decimal?       @db.Decimal(5, 2) @map("referrer_benefit_pct")
+  refereeBenefitPct      Decimal?       @db.Decimal(5, 2) @map("referee_benefit_pct")
+  maxReferralsPerPeriod  Int?           @map("max_referrals_per_period")
+  loyaltyTriggerPurchases Int?          @db.SmallInt @map("loyalty_trigger_purchases")
+  loyaltyBenefitPct      Decimal?       @db.Decimal(5, 2) @map("loyalty_benefit_pct")
+  minPurchaseAmount      Decimal?       @db.Decimal(10, 2) @map("min_purchase_amount")
+  maxUsesPerUser         Int?           @map("max_uses_per_user")
+  validFrom              DateTime?      @map("valid_from")
+  validUntil             DateTime?      @map("valid_until")
+  stackable              Boolean        @default(false)
+  createdBy              Int            @map("created_by")
+  createdAt              DateTime       @default(now()) @map("created_at")
+
+  creator       User            @relation(fields: [createdBy], references: [id])
+  referralCodes ReferralCode[]
+  loyalties     UserLoyalty[]
+  appliedDiscounts AppliedDiscount[]
+
+  @@map("discount_programs")
+}
+
+model ReferralCode {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  programId Int      @map("program_id")
+  code      String   @unique @db.VarChar(20)
+  link      String?  @db.Text
+  usesCount Int      @default(0) @map("uses_count")
+  isActive  Boolean  @default(true) @map("is_active")
+  expiresAt DateTime? @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User            @relation(fields: [userId], references: [id])
+  program DiscountProgram @relation(fields: [programId], references: [id])
+  uses    ReferralUse[]
+
+  @@map("referral_codes")
+}
+
+model ReferralUse {
+  id                    Int      @id @default(autoincrement())
+  codeId                Int      @map("code_id")
+  referredUserId        Int      @map("referred_user_id")
+  qualifyingFreightId   Int?     @map("qualifying_freight_id")
+  referrerBenefitApplied Boolean @default(false) @map("referrer_benefit_applied")
+  refereeBenefitApplied  Boolean @default(false) @map("referee_benefit_applied")
+  isSuspicious           Boolean @default(false) @map("is_suspicious")
+  createdAt              DateTime @default(now()) @map("created_at")
+
+  code             ReferralCode @relation(fields: [codeId], references: [id])
+  referredUser     User         @relation(fields: [referredUserId], references: [id])
+  qualifyingFreight Freight?    @relation(fields: [qualifyingFreightId], references: [id])
+  appliedDiscounts  AppliedDiscount[]
+
+  @@map("referral_uses")
+}
+
+model UserLoyalty {
+  id                Int     @id @default(autoincrement())
+  userId            Int     @map("user_id")
+  programId         Int     @map("program_id")
+  confirmedPurchases Int    @default(0) @map("confirmed_purchases")
+  totalPurchases    Int     @default(0) @map("total_purchases")
+  nextBenefitAt     Int     @default(0) @map("next_benefit_at")
+  lifetimeSavingsMxn Decimal @default(0) @db.Decimal(10, 2) @map("lifetime_savings_mxn")
+  suspended         Boolean @default(false)
+  suspensionReason  String? @db.Text @map("suspension_reason")
+  suspendedBy       Int?    @map("suspended_by")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  user        User            @relation(fields: [userId], references: [id])
+  program     DiscountProgram @relation(fields: [programId], references: [id])
+  suspender   User?           @relation("SuspendedBy", fields: [suspendedBy], references: [id])
+
+  @@unique([userId, programId])
+  @@map("user_loyalty")
+}
+
+model AppliedDiscount {
+  id             Int            @id @default(autoincrement())
+  freightId      Int            @map("freight_id")
+  userId         Int            @map("user_id")
+  programId      Int            @map("program_id")
+  referralUseId  Int?           @map("referral_use_id")
+  origin         DiscountOrigin
+  discountPct    Decimal        @db.Decimal(5, 2) @map("discount_pct")
+  originalAmount Decimal        @db.Decimal(10, 2) @map("original_amount")
+  discountApplied Decimal       @db.Decimal(10, 2) @map("discount_applied")
+  finalAmount    Decimal        @db.Decimal(10, 2) @map("final_amount")
+  folioRule      String?        @db.VarChar(30) @map("folio_rule")
+  appliedAt      DateTime       @default(now()) @map("applied_at")
+
+  freight     Freight          @relation(fields: [freightId], references: [id])
+  user        User             @relation(fields: [userId], references: [id])
+  program     DiscountProgram  @relation(fields: [programId], references: [id])
+  referralUse ReferralUse?     @relation(fields: [referralUseId], references: [id])
+
+  @@map("applied_discounts")
+}
+
+model DiscountSuspensionLog {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  suspendedBy Int      @map("suspended_by")
+  reason      String   @db.Text
+  suspendedAt DateTime @default(now()) @map("suspended_at")
+  liftedAt    DateTime? @map("lifted_at")
+  liftedBy    Int?     @map("lifted_by")
+
+  user        User  @relation("Suspended", fields: [userId], references: [id])
+  suspender   User  @relation("SuspendedBy", fields: [suspendedBy], references: [id])
+  lifter      User? @relation("LiftedBy", fields: [liftedBy], references: [id])
+
+  evidences SuspensionEvidence[]
+
+  @@map("discount_suspension_log")
+}
+
+// Normalización de TEXT[] evidence_urls de discount_suspension_log
+model SuspensionEvidence {
+  id           Int      @id @default(autoincrement())
+  suspensionId Int      @map("suspension_id")
+  fileUrl      String   @db.Text @map("file_url")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  suspension DiscountSuspensionLog @relation(fields: [suspensionId], references: [id], onDelete: Cascade)
+
+  @@map("suspension_evidence")
+}
+
+// ============================================================
+// MÓDULO 12 — REPORTES Y AUDITORÍA
+// ============================================================
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int?     @map("user_id")
+  action    String   @db.VarChar(50)
+  tableName String   @db.VarChar(50) @map("table_name")
+  recordId  Int?     @map("record_id")
+  oldValues Json?    @map("old_values")
+  newValues Json?    @map("new_values")
+  ipAddress String?  @db.VarChar(45) @map("ip_address")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([tableName, recordId])
+  @@map("audit_log")
+}
+
+model SavedReport {
+  id          Int      @id @default(autoincrement())
+  createdBy   Int      @map("created_by")
+  name        String   @db.VarChar(100)
+  reportType  String   @db.VarChar(50) @map("report_type")
+  filters     Json?
+  schedule    String?  @db.VarChar(50)
+  lastRunAt   DateTime? @map("last_run_at")
+  fileUrl     String?  @db.Text @map("file_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  creator User @relation(fields: [createdBy], references: [id])
+
+  @@map("saved_reports")
+}
