@@ -24,4 +24,12 @@ export const getUserById = async (id: number): Promise<User> => {
   return data.user
 }
 
-export 
+// updateRole y deactivateUser pueden ser funciones de administrador, por lo que no se implementan aquí, pero podrían seguir una estructura similar a las anteriores, utilizando api.put o api.patch según corresponda.
+export const updateUserRole = async (id: number, newRole: UserType) => {
+  const {data} = await api.put(`/users/${id}/role`, { role: newRole })
+  return data.user
+}
+
+export const desactivateUser = async (id: number) => {
+ await api.delete(`/users/${id}`)
+}

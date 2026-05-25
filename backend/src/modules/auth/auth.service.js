@@ -74,7 +74,13 @@ const login = async ({ email, password }) => {
   return {
     accessToken,
     refreshToken,
-    user: { id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email }
+    user: {
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      role: { userType: user.role?.userType }
+    }
   }
 }
 
