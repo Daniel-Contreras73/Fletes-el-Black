@@ -5,7 +5,10 @@ const getProfile = asyncHandler(async (req, res) => {
   const user = await usersService.getProfile(req.user.id)
   res.status(200).json({ status: 'ok', user })
 })
-
+const getUserById = asyncHandler(async (req, res) => {
+  const user = await usersService.getUserById(req.params.id)
+  res.status(200).json({ status: 'ok', user })
+})
 const getAllUsers = asyncHandler(async (req, res) => {
   const users = await usersService.getAllUsers()
   res.status(200).json({ status: 'ok', users })
@@ -26,4 +29,4 @@ const deactivate = asyncHandler(async (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Usuario desactivado' })
 })
 
-module.exports = { getProfile, getAllUsers, updateProfile, updateRole, deactivate }
+module.exports = { getProfile, getAllUsers, updateProfile, updateRole, deactivate , getUserById}

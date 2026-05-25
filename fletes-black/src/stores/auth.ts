@@ -2,9 +2,28 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import api from '@/services/api'
 
+function tokenExpired(token: string | null): boolean {
+  if (!token) return true
+  try {
+    const part = token.split('.')[1]
+    if (!part) return true
+    const payload = JSON.parse(atob(part.replace(/-/g, '+').replace(/_/g, '/')))
+    return payload.exp * 1000 < Date.now()
+  } catch {
+    return true
+  }
+}
+
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref<any>(JSON.parse(localStorage.getItem('user') || 'null'))
-  const accessToken = ref<string | null>(localStorage.getItem('accessToken'))
+  const storedToken = localStorage.getItem('accessToken')
+
+  if (tokenExpired(storedToken)) {
+    localStorage.removeItem('accessToken')
+    localStorage.removeItem('user')
+  }
+
+  const user = ref<any>(tokenExpired(storedToken) ? null : JSON.parse(localStorage.getItem('user') || 'null'))
+  const accessToken = ref<string | null>(tokenExpired(storedToken) ? null : storedToken)
 
   const isAuthenticated = computed(() => !!accessToken.value)
   const isAdmin = computed(() => user.value?.role?.userType === 'ADMIN')

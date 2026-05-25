@@ -156,6 +156,7 @@ model User {
   privacyPolicyAccepted Boolean   @default(false) @map("privacy_policy_accepted")
   failedLoginAttempts   Int       @default(0) @db.SmallInt @map("failed_login_attempts")
   lockedUntil           DateTime? @map("locked_until")
+  isActive              Boolean   @default(true) @map("is_active")
   deletionRequestedAt   DateTime? @map("deletion_requested_at")
   anonymizedAt          DateTime? @map("anonymized_at")
   createdAt             DateTime  @default(now()) @map("created_at")
