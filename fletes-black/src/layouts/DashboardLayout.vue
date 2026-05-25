@@ -14,7 +14,7 @@
           class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
           active-class="bg-orange-50 text-orange-600 font-medium"
         >
-          📊 Dashboard
+           Dashboard
         </RouterLink>
 
         <RouterLink
@@ -22,7 +22,7 @@
           class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
           active-class="bg-orange-50 text-orange-600 font-medium"
         >
-          📦 Mis Fletes
+           Mis Fletes
         </RouterLink>
 
         <RouterLink
