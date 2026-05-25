@@ -2,7 +2,7 @@ const { Router } = require('express')
 const usersController = require('./users.controller')
 const { authenticate, authorize } = require('../../middleware/auth')
 const validate = require('../../middleware/validate')
-const { updateProfileSchema, updateRoleSchema } = require('./users.validator')
+const { updateProfileSchema, updateRoleSchema, getUserByIdSchema } = require('./users.validator')
 
 const router = Router()
 
@@ -20,5 +20,7 @@ router.put('/:id/role', authenticate, authorize('ADMIN'), validate(updateRoleSch
 
 // DELETE /api/users/:id — solo admin desactiva usuario
 router.delete('/:id', authenticate, authorize('ADMIN'), usersController.deactivate)
+
+router.get('/:id', authenticate, authorize('ADMIN'), validate(getUserByIdSchema), usersController.getUserById)
 
 module.exports = router
