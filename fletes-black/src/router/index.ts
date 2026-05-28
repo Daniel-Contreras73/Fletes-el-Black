@@ -20,6 +20,11 @@ const router = createRouter({
       name: 'tracking',
       component: () => import('@/views/tracking/TrackingView.vue')
     },
+    {
+      Path: '/formWizard',
+      name : 'formWizard',
+      component: () => import('@/views/formWizard/formWizard.vue')
+    },
 
     // Rutas protegidas
     {
