@@ -48,4 +48,11 @@ const assignCarrier = asyncHandler(async (req, res) => {
   res.status(200).json({ status: 'ok', shipment })
 })
 
-module.exports = { create, getOne, getByFolio, getMine, getAll, updateStatus, cancel, assignCarrier }
+const updatePrice = asyncHandler(async (req, res) => {
+  const price = Number(req.body.price)
+  if (!price || price <= 0) return res.status(400).json({ message: 'Precio inválido' })
+  const shipment = await shipmentsService.updatePrice(req.params.id, price)
+  res.status(200).json({ status: 'ok', shipment })
+})
+
+module.exports = { create, getOne, getByFolio, getMine, getAll, updateStatus, updatePrice, cancel, assignCarrier }

@@ -2,8 +2,8 @@
   <div class="p-8">
     <!-- Header -->
     <div class="mb-6">
-      <h2 class="text-2xl font-bold text-gray-900">Gestión de Usuarios</h2>
-      <p class="text-sm text-gray-500 mt-1">{{ users.length }} usuarios registrados</p>
+      <h2 class="text-2xl font-bold tracking-widest" style="color: #DC2626">CLIENTES</h2>
+      <p class="text-sm text-gray-500 mt-1">{{ users.length }} clientes registrados</p>
     </div>
 
     <!-- Error -->
@@ -58,8 +58,8 @@
 
             <!-- Rol -->
             <td class="px-6 py-4">
-              <span :class="roleBadge(user.role.userType)" class="px-2 py-1 rounded-full text-xs font-medium">
-                {{ user.role.userType }}
+              <span class="bg-blue-50 text-blue-600 px-2 py-1 rounded-full text-xs font-medium">
+                Cliente
               </span>
             </td>
 
@@ -78,7 +78,7 @@
               <div v-if="user.isActive" class="flex items-center gap-2">
                 <select
                   :value="user.role.userType"
-                  @change="onChangeRole(user.id, ($event.target as HTMLSelectElement).value as UserType)"
+                  @change="onChangeRole(user.id, ($event.target as HTMLSelectElement).value as 'ADMIN' | 'CLIENT' | 'TRANSPORTER')"
                   class="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
                   <option value="CLIENT">CLIENT</option>
@@ -106,7 +106,6 @@
 import { onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useUsersStore } from '@/stores/users'
-import type { UserType } from '@/services/users.service'
 
 const store = useUsersStore()
 const { users, loading, error } = storeToRefs(store)
@@ -116,13 +115,8 @@ onMounted(() => store.fetchAll())
 const initials = (user: { firstName: string; lastName: string }) =>
   ((user.firstName[0] ?? '') + (user.lastName[0] ?? '')).toUpperCase()
 
-const roleBadge = (role: UserType) => ({
-  'bg-orange-100 text-orange-600': role === 'ADMIN',
-  'bg-blue-50 text-blue-600': role === 'CLIENT',
-  'bg-green-50 text-green-600': role === 'TRANSPORTER'
-})
 
-const onChangeRole = async (id: number, role: UserType) => {
+const onChangeRole = async (id: number, role: 'ADMIN' | 'CLIENT' | 'TRANSPORTER') => {
   await store.changeRole(id, role)
 }
 

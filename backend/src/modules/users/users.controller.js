@@ -10,7 +10,7 @@ const getUserById = asyncHandler(async (req, res) => {
   res.status(200).json({ status: 'ok', user })
 })
 const getAllUsers = asyncHandler(async (req, res) => {
-  const users = await usersService.getAllUsers()
+  const users = await usersService.getAllUsers(req.query.role)
   res.status(200).json({ status: 'ok', users })
 })
 

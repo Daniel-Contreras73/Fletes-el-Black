@@ -8,8 +8,8 @@ const getProfile = async (id) => {
   return user
 }
 
-const getAllUsers = async () => {
-  return usersRepository.findAll()
+const getAllUsers = async (role) => {
+  return usersRepository.findAll(role)
 }
 
 const updateProfile = async (id, data) => {
