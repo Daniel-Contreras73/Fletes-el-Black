@@ -1,3 +1,210 @@
+<!-- src/views/FleteWizardView.vue -->
+<script setup>
+import { ref, computed } from 'vue'
+
+// 1. Importamos los componentes de cada paso
+import PasoUno from '@/views/formWizard/wizStep1.vue'
+import PasoDos from '@/views/formWizard/wizStep2.vue'
+import PasoTres from '@/views/formWizard/wizStep3.vue'
+import PasoCuatro from '@/views/formWizard/wizStep4.vue'
+import PasoCinco from '@/views/formWizard/wizStep5.vue'
+
+// 2. Estado del Wizard (En qué paso estamos)
+const pasoActual = ref(1)
+const totalPasos = 5
+
+// 3. El "Cofre de Datos" (Aquí se guarda TODO lo que el usuario escriba)
+const formulario = ref(
+{
+    // Datos del Paso 1 (Flete - 1.png)
+    origen: '',
+    destino: '',
+    interior: '',
+    nombreCliente: '',
+    referencias: '',
+})
+
+// 4. Propiedad computada para saber qué componente mostrar en pantalla
+const componenteActual = computed(() =>
+{
+    switch (pasoActual.value)
+    {
+        case 1: return PasoUno
+        case 2: return PasoDos
+        case 3: return PasoTres
+        case 4: return PasoCuatro
+        case 5: return PasoCinco
+        default: return PasoUno
+    }
+})
+
+// 5. Funciones de navegación con validaciones básicas
+const irAtras = () =>
+{
+    if (pasoActual.value > 1)
+    {
+        pasoActual.value--
+    }
+}
+
+const irSiguiente = () =>
+{
+    if (pasoActual.value < totalPasos)
+    {
+        pasoActual.value++
+    }
+    else
+    {
+        enviarFormularioFinal()
+    }
+}
+
+const enviarFormularioFinal = () =>
+{
+  console.log('¡Formulario completado! Enviando a la API:', formulario.value)
+  // Aquí harías tu petición axios/fetch final
+}
+</script>
+
 <template>
-    Quinteroooo
+    <div class="wizard-container">
+        
+        <!-- BARRA DE PROGRESO (Círculos del 1 al 6) -->
+        <header class="wizard-header">
+            <div class="pasos-indicador">
+                <div 
+                v-for="paso in totalPasos" 
+                :key="paso" 
+                class="circulo"
+                :class="{ 'activo': paso === pasoActual, 'completado': paso < pasoActual }"
+                >
+                {{ paso }}
+                </div>
+            </div>
+        </header>
+
+        <!-- CONTENEDOR DINÁMICO (Cambia el contenido sin cambiar de URL) -->
+        <main class="wizard-body">
+            <!-- 
+                Pasamos todo el objeto 'formulario' como v-model para que 
+                cualquier sub-componente pueda leer y escribir sus propios datos.
+            -->
+            <component :is="componenteActual" v-model="formulario" />
+        </main>
+
+        <!-- BOTONES DE CONTROL (Anterior / Siguiente) -->
+        <footer class="wizard-footer">
+            <button class="btn btn-anterior" :disabled="pasoActual === 1" @click="irAtras">
+                Anterior
+            </button>
+            
+            <button class="btn btn-siguiente" @click="irSiguiente">
+                {{ pasoActual === totalPasos ? 'Finalizar' : 'Siguiente' }}
+            </button>
+        </footer>
+
+    </div>
 </template>
+
+<style scoped>
+/* Estilos base para estructurar el Layout del Wizard */
+.wizard-container
+{
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  min-height: 500px;
+}
+
+.wizard-header
+{
+  margin-bottom: 30px;
+}
+
+.pasos-indicador
+{
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.circulo
+{
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid #ff5a5a;
+  color: #ff5a5a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+/* El círculo rojo sólido de la foto (Paso activo) */
+.circulo.activo
+{
+  background-color: #ff5a5a;
+  color: white;
+}
+
+.circulo.completado
+{
+  background-color: #ffe5e5;
+  border-color: #ff5a5a;
+}
+
+.wizard-body
+{
+  flex-grow: 1;
+  background-color: #fff;
+  padding: 20px 0;
+}
+
+.wizard-footer
+{
+  display: flex;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.btn
+{
+  flex: 1;
+  padding: 15px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-anterior
+{
+  background: white;
+  border: 2px solid #ff5a5a;
+  color: #ff5a5a;
+}
+
+.btn-anterior:disabled
+{
+  border-color: #ccc;
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+.btn-siguiente
+{
+  background: #ff5a5a;
+  border: none;
+  color: white;
+}
+
+.btn-siguiente:hover
+{
+  background: #e04e4e;
+}
+</style>
