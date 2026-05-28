@@ -2,11 +2,11 @@ const shipmentsRepository = require('./shipments.repository')
 const AppError = require('../../utils/AppError')
 
 const createShipment = async (userId, data) => {
-  const { items, ...shipmentData } = data
+  const { items, totalPrice, ...shipmentData } = data
 
-  const basePrice = items
-    ? items.reduce((sum, item) => sum + item.subtotal, 0)
-    : 0
+  const basePrice = totalPrice != null
+    ? totalPrice
+    : items ? items.reduce((sum, item) => sum + item.subtotal, 0) : 0
 
   return shipmentsRepository.create(
     { ...shipmentData, shipperId: userId, basePrice, finalPrice: basePrice },
@@ -109,6 +109,12 @@ const assignCarrier = async (freightId, bidId, user) => {
   )
 }
 
+const updatePrice = async (id, price) => {
+  const freight = await shipmentsRepository.findById(parseInt(id))
+  if (!freight) throw new AppError('Flete no encontrado', 404, 'FREIGHT_NOT_FOUND')
+  return shipmentsRepository.updatePrice(parseInt(id), price)
+}
+
 module.exports = {
   createShipment,
   getShipment,
@@ -116,6 +122,7 @@ module.exports = {
   getMyShipments,
   getAllShipments,
   updateStatus,
+  updatePrice,
   cancelShipment,
   assignCarrier
 }

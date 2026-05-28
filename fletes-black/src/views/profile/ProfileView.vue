@@ -1,12 +1,12 @@
-<template>
+﻿<template>
   <div>
     <!-- Cabecera de página -->
     <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold tracking-widest" style="color: #E85454">CONFIGURACIÓN</h1>
+      <h1 class="text-2xl font-bold tracking-widest" style="color: #DC2626">CONFIGURACIÓN</h1>
       <RouterLink
         to="/shipments/new"
         class="flex items-center gap-2 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
-        style="background-color: #8B1A1A"
+        style="background-color: #991B1B"
       >
         <span class="text-lg font-bold">+</span>
         Nuevo Flete
@@ -19,7 +19,7 @@
         <!-- Avatar -->
         <div
           class="w-36 h-36 rounded-full flex items-center justify-center flex-shrink-0"
-          style="background-color: #8B1A1A"
+          style="background-color: #991B1B"
         >
           <svg class="w-20 h-20 text-red-200" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
@@ -34,7 +34,7 @@
               v-model="form.name"
               type="text"
               class="w-full rounded-lg px-4 py-3 text-gray-700 focus:outline-none focus:ring-2"
-              style="background-color: #F4A0A0; border: 1.5px solid #EE7E7E; focus-ring-color: #8B1A1A"
+              style="background-color: #F4A0A0; border: 1.5px solid #EE7E7E; focus-ring-color: #991B1B"
               :placeholder="auth.user?.firstName + ' ' + (auth.user?.lastName ?? '')"
             />
           </div>

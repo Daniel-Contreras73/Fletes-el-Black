@@ -28,7 +28,8 @@ const register = async ({ firstName, lastName, email, phone, password, roleId = 
   const hashedPassword = await bcrypt.hash(password, 10)
 
   const user = await prisma.user.create({
-    data: { firstName, lastName, email, phone, passwordHash: hashedPassword, roleId }
+    data: { firstName, lastName, email, phone, passwordHash: hashedPassword, roleId },
+    include: { role: true }
   })
 
   const { accessToken, refreshToken } = generateTokens(user)

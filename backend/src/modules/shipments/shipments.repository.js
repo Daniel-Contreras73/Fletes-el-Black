@@ -25,6 +25,7 @@ const create = async (data, items = []) => {
       destinationLat: data.destinationLat,
       destinationLng: data.destinationLng,
       cargoType: data.cargoType,
+      paymentPreference: data.paymentPreference,
       estimatedCollectionAt: data.estimatedCollectionAt,
       bidDeadline: data.bidDeadline,
       categoryId: data.categoryId,
@@ -175,6 +176,13 @@ const assignCarrier = (freightId, carrierId, vehicleId, bidId) => {
   })
 }
 
+const updatePrice = (id, finalPrice) => {
+  return prisma.freight.update({
+    where: { id },
+    data: { finalPrice, basePrice: finalPrice }
+  })
+}
+
 module.exports = {
   create,
   findById,
@@ -182,6 +190,7 @@ module.exports = {
   findByUser,
   findAll,
   updateStatus,
+  updatePrice,
   cancel,
   assignCarrier
 }

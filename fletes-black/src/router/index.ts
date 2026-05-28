@@ -4,7 +4,14 @@ import { useAuthStore } from '@/stores/auth'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    // Rutas públicas
+    // ── Página pública de inicio ──────────────────────────
+    {
+      path: '/',
+      name: 'landing',
+      component: () => import('@/views/LandingView.vue')
+    },
+
+    // ── Autenticación ─────────────────────────────────────
     {
       path: '/login',
       name: 'login',
@@ -21,9 +28,11 @@ const router = createRouter({
       component: () => import('@/views/tracking/TrackingView.vue')
     },
 
-    // Rutas protegidas
+    // ── Área protegida (DashboardLayout) ──────────────────
+    // El parent usa /home pero los hijos con rutas absolutas
+    // siguen funcionando en sus URLs originales (/shipments, etc.)
     {
-      path: '/',
+      path: '/home',
       component: () => import('@/layouts/DashboardLayout.vue'),
       meta: { requiresAuth: true },
       children: [
@@ -33,45 +42,61 @@ const router = createRouter({
           component: () => import('@/views/dashboard/DashboardView.vue')
         },
         {
-          path: 'shipments',
+          path: '/shipments',
           name: 'shipments',
           component: () => import('@/views/shipments/ShipmentsView.vue')
         },
         {
-          path: 'shipments/new',
+          path: '/shipments/new',
           name: 'shipments-new',
           component: () => import('@/views/shipments/NewShipmentView.vue')
         },
         {
-          path: 'shipments/:id',
+          path: '/shipments/:id',
           name: 'shipment-detail',
           component: () => import('@/views/shipments/ShipmentDetailView.vue')
         },
         {
-          path: 'documents',
+          path: '/documents',
           name: 'documents',
           component: () => import('@/views/documents/DocumentsView.vue')
         },
         {
-          path: 'payments',
+          path: '/payments',
           name: 'payments',
           component: () => import('@/views/payments/PaymentsView.vue')
         },
         {
-          path: 'loyalty',
+          path: '/loyalty',
           name: 'loyalty',
           component: () => import('@/views/loyalty/LoyaltyView.vue')
         },
         {
-          path: 'profile',
+          path: '/profile',
           name: 'profile',
           component: () => import('@/views/profile/ProfileView.vue')
         },
-        // Solo admin
         {
-          path: 'admin/users',
+          path: '/destinations',
+          name: 'destinations',
+          component: () => import('@/views/destinations/DestinationsView.vue')
+        },
+        {
+          path: '/admin/shipments',
+          name: 'admin-shipments',
+          component: () => import('@/views/admin/AdminShipmentsView.vue'),
+          meta: { requiresAdmin: true }
+        },
+        {
+          path: '/admin/users',
           name: 'admin-users',
           component: () => import('@/views/admin/UsersView.vue'),
+          meta: { requiresAdmin: true }
+        },
+        {
+          path: '/admin/documents',
+          name: 'admin-documents',
+          component: () => import('@/views/admin/DocumentsAdminView.vue'),
           meta: { requiresAdmin: true }
         }
       ]
@@ -90,27 +115,29 @@ const router = createRouter({
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
 
-  // Redirigir usuarios autenticados fuera de rutas públicas
-  const publicRoutes = ['login', 'register']
+  // Rutas públicas — si ya está autenticado, ir al home
+  const publicRoutes = ['login', 'register', 'landing']
   if (publicRoutes.includes(to.name as string) && auth.isAuthenticated) {
     return { name: 'dashboard' }
   }
 
+  // Rutas protegidas — si no está autenticado, ir a landing
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
-    return { name: 'login' }
+    return { name: 'landing' }
   }
 
+  // Rutas solo admin
   if (to.meta.requiresAdmin && !auth.isAdmin) {
     return { name: 'dashboard' }
   }
 
-  // Recuperar perfil solo si hay token pero no hay datos de usuario en memoria
+  // Recuperar perfil si hay token pero no hay datos en memoria
   if (auth.isAuthenticated && !auth.user) {
     try {
       await auth.fetchProfile()
     } catch {
       auth.clearSession()
-      return { name: 'login' }
+      return { name: 'landing' }
     }
   }
 })

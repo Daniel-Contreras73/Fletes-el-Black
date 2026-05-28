@@ -15,7 +15,7 @@ export interface User {
 //FUNCIONES PARA USUARIOS
 
 export const getAllUsers = async (): Promise<User[]> => {
-  const {data} = await api.get('/users')
+  const { data } = await api.get('/users', { params: { role: 'CLIENT' } })
   return data.users
 }
 

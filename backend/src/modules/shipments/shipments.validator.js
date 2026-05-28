@@ -11,6 +11,8 @@ const createShipmentSchema = z.object({
     destinationLat: z.number().optional(),
     destinationLng: z.number().optional(),
     cargoType: z.string().optional(),
+    paymentPreference: z.enum(['AL_RECOGER', 'AL_ENTREGAR']).optional(),
+    totalPrice: z.number().positive().optional(),
     estimatedCollectionAt: z.string().datetime().optional(),
     bidDeadline: z.string().datetime().optional(),
     categoryId: z.number().optional(),

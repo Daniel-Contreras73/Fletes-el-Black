@@ -16,8 +16,9 @@ const findById = (id) => {
   })
 }
 
-const findAll = () => {
+const findAll = (roleFilter) => {
   return prisma.user.findMany({
+    where: roleFilter ? { role: { userType: roleFilter } } : undefined,
     select: {
       id: true,
       firstName: true,

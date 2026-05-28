@@ -49,6 +49,13 @@ router.patch('/:id/status',
   shipmentsController.updateStatus
 )
 
+// PATCH /api/shipments/:id/price — admin actualiza el precio
+router.patch('/:id/price',
+  authenticate,
+  authorize('ADMIN'),
+  shipmentsController.updatePrice
+)
+
 // PATCH /api/shipments/:id/cancel — cancelar flete
 router.patch('/:id/cancel',
   authenticate,
