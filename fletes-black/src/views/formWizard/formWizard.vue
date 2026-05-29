@@ -68,31 +68,22 @@ const enviarFormularioFinal = () =>
 
 <template>
     <div class="wizard-container">
-        
         <!-- BARRA DE PROGRESO (Círculos del 1 al 6) -->
         <header class="wizard-header">
             <div class="pasos-indicador">
-                <div 
-                v-for="paso in totalPasos" 
-                :key="paso" 
-                class="circulo"
-                :class="{ 'activo': paso === pasoActual, 'completado': paso < pasoActual }"
-                >
-                {{ paso }}
+                <div v-for="paso in totalPasos"   :key="paso"   class="circulo"
+                :class="{ 'activo': paso === pasoActual, 'completado': paso < pasoActual }">
+                  {{ paso }}
                 </div>
             </div>
         </header>
 
-        <!-- CONTENEDOR DINÁMICO (Cambia el contenido sin cambiar de URL) -->
+        <!-- CONTENEDOR DINÁMICO -->
         <main class="wizard-body">
-            <!-- 
-                Pasamos todo el objeto 'formulario' como v-model para que 
-                cualquier sub-componente pueda leer y escribir sus propios datos.
-            -->
             <component :is="componenteActual" v-model="formulario" />
         </main>
 
-        <!-- BOTONES DE CONTROL (Anterior / Siguiente) -->
+        <!-- BOTONES (Anterior / Siguiente) -->
         <footer class="wizard-footer">
             <button class="btn btn-anterior" :disabled="pasoActual === 1" @click="irAtras">
                 Anterior
@@ -102,7 +93,6 @@ const enviarFormularioFinal = () =>
                 {{ pasoActual === totalPasos ? 'Finalizar' : 'Siguiente' }}
             </button>
         </footer>
-
     </div>
 </template>
 
@@ -110,84 +100,96 @@ const enviarFormularioFinal = () =>
 /* Estilos base para estructurar el Layout del Wizard */
 .wizard-container
 {
-  max-width: 800px;
+  max-width: 95%;
   margin: 0 auto;
-  padding: 20px;
+  padding: 2rem;
   display: flex;
+  align-items: center;
   flex-direction: column;
-  min-height: 500px;
+  min-height: 100vh;
 }
 
 .wizard-header
 {
   margin-bottom: 30px;
+  width: 45%;
 }
 
+/* - - - - - - - - - - HEADER (los numeros) - - - - - - - - - - */
 .pasos-indicador
 {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   gap: 15px;
 }
 
 .circulo
 {
-  width: 40px;
-  height: 40px;
+  width: 3rem;
+  height: 3rem;
   border-radius: 50%;
   border: 2px solid #ff5a5a;
   color: #ff5a5a;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 1.4rem;
   font-weight: bold;
   transition: all 0.3s ease;
 }
 
-/* El círculo rojo sólido de la foto (Paso activo) */
+/* El circulo rojo (Paso activo) */
 .circulo.activo
 {
   background-color: #ff5a5a;
-  color: white;
+  color: #fff9f9;
+  font-size: 1.8rem;
 }
 
+/* Cuando se completa y pasa a otro circulo */
 .circulo.completado
 {
   background-color: #ffe5e5;
   border-color: #ff5a5a;
 }
 
+/* - - - - - - - - - - BODY (El entremedio del Wizard donde van los componentes) - - - - - - - - - - */
 .wizard-body
 {
   flex-grow: 1;
-  background-color: #fff;
-  padding: 20px 0;
+  width: 100%;
+  min-height: 31rem;
+  max-height: 31rem;
+  padding: 1.7rem 0;
 }
 
+/* - - - - - - - - - - FOOTER (Los botones atras-adelante) - - - - - - - - - - */
 .wizard-footer
 {
   display: flex;
+  width: 100%;
   gap: 15px;
-  margin-top: 20px;
 }
 
 .btn
 {
   flex: 1;
-  padding: 15px;
-  font-size: 16px;
-  font-weight: bold;
+  padding: 0.7rem 1rem;
+  font-size: 1.5rem;
+  font-weight: 550;
   border-radius: 4px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background-color 0.2s;
 }
 
 .btn-anterior
 {
-  background: white;
+  background-color: transparent;
   border: 2px solid #ff5a5a;
   color: #ff5a5a;
 }
+
+.btn-anterior:hover {background-color: #ffe5e5;}
 
 .btn-anterior:disabled
 {
@@ -198,13 +200,10 @@ const enviarFormularioFinal = () =>
 
 .btn-siguiente
 {
-  background: #ff5a5a;
+  background: #ff5858;
   border: none;
-  color: white;
+  color: #fff9f9;
 }
 
-.btn-siguiente:hover
-{
-  background: #e04e4e;
-}
+.btn-siguiente:hover {background: #df3a3a;}
 </style>

@@ -21,7 +21,7 @@ const router = createRouter({
       component: () => import('@/views/tracking/TrackingView.vue')
     },
     {
-      Path: '/formWizard',
+      path: '/formWizard',
       name : 'formWizard',
       component: () => import('@/views/formWizard/formWizard.vue')
     },
