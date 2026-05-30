@@ -26,6 +26,7 @@ const formulario = ref(
     interior: '',
     nombreCliente: '',
     referencias: '',
+    imagenes: [],
 })
 
 // 4. Propiedad computada para saber qué componente mostrar en pantalla
