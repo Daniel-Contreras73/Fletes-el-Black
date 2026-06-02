@@ -29,4 +29,14 @@ const deactivate = asyncHandler(async (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Usuario desactivado' })
 })
 
-module.exports = { getProfile, getAllUsers, updateProfile, updateRole, deactivate , getUserById}
+const updateUser = asyncHandler(async (req, res) => {
+  const user = await usersService.updateUser(req.params.id, req.body)
+  res.status(200).json({ status: 'ok', user })
+})
+
+const createUser = asyncHandler(async (req, res) => {
+  const user = await usersService.createUser(req.body)
+  res.status(201).json({ status: 'ok', user })
+})
+
+module.exports = { getProfile, getAllUsers, updateProfile, updateRole, deactivate, getUserById, createUser, updateUser }
