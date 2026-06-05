@@ -18,5 +18,7 @@
 </template>
 
 <script setup lang="ts">
+// Indicador de pasos tipo círculo numerado — muestra en qué paso del formulario está el usuario.
+// Se usa en LandingQuotationForm para mostrar el progreso de la cotización (pasos 1 al 6).
 defineProps<{ total: number; current: number }>()
 </script>

@@ -7,6 +7,8 @@
 </template>
 
 <script setup lang="ts">
+// Tarjeta de estadística reutilizable — muestra un título, un número grande y un subtítulo opcional.
+// Se usa en el Dashboard para mostrar totales de usuarios, fletes, etc.
 import { computed } from 'vue'
 
 // Props con valores por defecto

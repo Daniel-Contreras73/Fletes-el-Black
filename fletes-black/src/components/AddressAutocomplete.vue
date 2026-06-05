@@ -40,6 +40,8 @@
 </template>
 
 <script setup lang="ts">
+// Input de dirección con autocompletado — busca direcciones en tiempo real usando la API de Nominatim (OpenStreetMap).
+// Muestra un dropdown con sugerencias y emite la dirección seleccionada con coordenadas (lat/lng).
 import { ref } from 'vue'
 
 interface NominatimResult {

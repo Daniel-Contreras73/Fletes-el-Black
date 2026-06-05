@@ -52,7 +52,7 @@
             <span>{{ tip.text }}</span>
           </div>
           <div class="rounded-xl p-3 bg-red-50 border border-red-200 text-xs text-red-700">
-            💡 La IA analizará las fotos para identificar los objetos y calcular el precio automáticamente.
+            💡 Se analizará las fotos para identificar los objetos y calcular el precio automáticamente.
           </div>
         </div>
         <div @click="triggerFileInput" @dragover.prevent @drop.prevent="onDrop"
@@ -286,6 +286,9 @@
 </template>
 
 <script setup lang="ts">
+// Formulario de cotización de la landing — guía al usuario en 6 pasos para cotizar un flete.
+// Pasos: (1) ubicaciones y contacto, (2) fotos de la carga, (3) protección, (4) dificultad,
+// (5) análisis con IA de las imágenes, (6) resultado con precio y enlace a WhatsApp.
 import { ref, reactive, computed } from 'vue'
 import StepIndicator from '@/components/StepIndicator.vue'
 

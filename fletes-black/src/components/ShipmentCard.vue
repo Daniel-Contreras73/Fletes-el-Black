@@ -32,6 +32,8 @@
 </template>
 
 <script setup lang="ts">
+// Tarjeta de flete — muestra el folio, ruta, estado, fecha y precio de un flete.
+// Se usa en la vista de Mis Fletes para listar los fletes del cliente con opción a cancelar.
 import { computed } from 'vue'
 import type { Shipment } from '@/services/shipments.service'
 
