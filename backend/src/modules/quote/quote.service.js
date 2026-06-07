@@ -1,9 +1,15 @@
+// Servicio de cotización con IA — se conecta a OpenRouter (GPT-4.1) para analizar
+// imágenes de la carga y calcular el precio del flete automáticamente.
 const axios = require('axios')
 const AppError = require('../../utils/AppError')
 
+// URL del servicio de IA y modelo a usar
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 const MODEL = 'openai/gpt-4.1'
 
+// Convierte el texto que responde la IA a un objeto JavaScript.
+// La IA a veces devuelve texto extra antes o después del JSON, por eso se intenta
+// primero parsear directo y si falla se busca el bloque { } dentro del texto.
 const parseJSON = (raw) => {
   const text = raw.trim()
   try {
@@ -15,6 +21,8 @@ const parseJSON = (raw) => {
   }
 }
 
+// Devuelve los headers necesarios para autenticarse con OpenRouter.
+// La API key se guarda en variables de entorno (.env) para no exponerla en el código.
 const getHeaders = () => {
   if (!process.env.OPENROUTER_API_KEY) {
     throw new AppError('API key de IA no configurada en el servidor', 500, 'NO_API_KEY')
@@ -26,14 +34,18 @@ const getHeaders = () => {
   }
 }
 
+// Recibe las fotos de la carga y las manda a GPT-4.1 para que identifique los objetos.
+// Devuelve un array de objetos con nombre, dimensiones estimadas, peso y dificultad.
 const analyzeImages = async (images, zone) => {
   const headers = getHeaders()
 
+  // Convierte cada imagen de base64 al formato que acepta la IA
   const imageContent = images.map(img => ({
     type: 'image_url',
     image_url: { url: `data:${img.mime};base64,${img.base64}` }
   }))
 
+  // Instrucciones que le damos a la IA — le decimos qué hacer y en qué formato responder
   const prompt = `Eres el sistema de cotización de fletes de una empresa en México.
 Analiza estas imágenes y detecta TODOS los objetos que se van a transportar.
 Clasifica cada objeto en una categoría de tamaño y evalúa su dificultad de manejo.
@@ -76,6 +88,7 @@ Reglas de dificultad:
 Solo marca estimacion_automatica = false si el objeto es MUY inusual o el ángulo impide clasificarlo.
 Responde SOLO el JSON sin texto ni backticks.`
 
+  // Manda las imágenes y el prompt a la IA y espera la respuesta
   const { data } = await axios.post(OPENROUTER_URL, {
     model: MODEL,
     max_tokens: 1500,
@@ -85,25 +98,32 @@ Responde SOLO el JSON sin texto ni backticks.`
     }]
   }, { headers })
 
+  // Extrae el texto de la respuesta y lo convierte a objeto JavaScript
   return parseJSON(data.choices[0].message.content)
 }
 
+// Recibe los objetos ya analizados y le pide a la IA que calcule el precio de cada uno.
+// Devuelve el desglose por objeto y el total final en MXN.
 const calculateQuote = async (objetos, zone, tipo, proteccion = [], dificultades = []) => {
   const headers = getHeaders()
 
+  // Convierte el tipo de ruta a una etiqueta legible para el prompt
   const tipoLabel = tipo === 'belice' ? 'Internacional — Belice'
     : tipo === 'foraneo_qroo' ? 'Foráneo — Dentro de Quintana Roo'
     : tipo === 'foraneo_nacional' ? 'Foráneo — Fuera de Quintana Roo'
     : 'Local — Chetumal'
 
+  // Convierte el array de objetos a texto para incluirlo en el prompt
   const objsStr = objetos.map(o =>
     `- ${o.nombre}: categoria=${o.tamano_categoria}, peso=${o.peso_kg ?? '?'}kg, dificultad=${o.dificultad}${o.es_irregular ? ', IRREGULAR' : ''}${o.largo_cm ? `, dims=${o.largo_cm}x${o.ancho_cm}x${o.alto_cm}cm` : ''}`
   ).join('\n')
 
+  // Calcula los recargos por protección y dificultades adicionales seleccionadas
   const extrasLines = []
   if (proteccion.length > 0) extrasLines.push(`Protección solicitada: ${proteccion.join(', ')} — suma $${proteccion.length * 80} MXN`)
   if (dificultades.length > 0) extrasLines.push(`Dificultades adicionales: ${dificultades.join(', ')} — suma $${dificultades.length * 100} MXN`)
 
+  // Instrucciones de cotización con tarifas base y rangos de precio por tipo de ruta
   const prompt = `Eres el cotizador de una empresa de fletes en México.
 Cotiza cada objeto individualmente.
 
@@ -153,6 +173,7 @@ Responde SOLO con este JSON (sin texto extra, sin backticks):
   "comentario": "2 oraciones profesionales sobre el servicio para el cliente"
 }`
 
+  // Manda el prompt a la IA y espera el precio calculado
   const { data } = await axios.post(OPENROUTER_URL, {
     model: MODEL,
     max_tokens: 900,

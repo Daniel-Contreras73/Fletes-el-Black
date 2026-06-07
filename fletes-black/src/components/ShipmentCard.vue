@@ -19,6 +19,7 @@
       <p class="text-xs text-gray-400">{{ formattedDate }}</p>
       <div class="flex items-center gap-3">
         <p class="font-semibold text-gray-800">${{ shipment.totalPrice.toLocaleString('es-MX') }}</p>
+        //solo muestra el boton si el flete todavia se puede cancelar
         <button
           v-if="canCancel"
           @click.stop="emit('cancel', shipment.id)"
@@ -72,6 +73,7 @@ const statusLabel = computed(() => {
   return labels[props.shipment.status] ?? props.shipment.status
 })
 
+//satusclass es una variable computed que devuelve un objeto con clases Css
 const statusClass = computed(() => ({
   'bg-yellow-100 text-yellow-700': props.shipment.status === 'PUBLISHED',
   'bg-blue-100 text-blue-700': props.shipment.status === 'ASSIGNED',

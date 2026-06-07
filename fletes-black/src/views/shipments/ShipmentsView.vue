@@ -56,21 +56,37 @@
           </tr>
         </thead>
         <tbody>
+          <!-- Si no hay fletes en el array filtered, muestra un mensaje según si hay búsqueda activa o no -->
           <tr v-if="filtered.length === 0">
             <td colspan="6" class="text-center py-12 text-gray-400">
               {{ search ? 'No hay resultados para la búsqueda' : 'No hay fletes en esta categoría' }}
             </td>
           </tr>
+
+          <!-- Por cada flete en filtered crea una fila. :key ayuda a Vue a identificar cada fila -->
+          <!-- :style alterna el color de fondo entre filas pares e impares (efecto rayado) -->
           <tr v-for="shipment in filtered" :key="shipment.id"
             class="border-b border-red-50 hover:bg-red-50 transition-colors"
             :style="rowIndex(shipment.id) % 2 === 0 ? 'background-color: #FFF5F5' : ''">
+
+            <!-- Folio del flete — número identificador -->
             <td class="px-5 py-4 font-semibold text-gray-800">Folio #{{ shipment.folio }}</td>
+
+            <!-- Fecha de creación formateada con la función formatDate -->
             <td class="px-5 py-4 text-gray-600">{{ formatDate(shipment.createdAt) }}</td>
+
+            <!-- Ruta: ciudad de origen → ciudad de destino -->
             <td class="px-5 py-4 text-gray-700 font-medium">{{ shipment.originCity }} → {{ shipment.destinationCity }}</td>
+
+            <!-- Precio total formateado en pesos mexicanos -->
             <td class="px-5 py-4 font-semibold text-gray-800">${{ shipment.totalPrice.toLocaleString('es-MX') }}</td>
+
+            <!-- Badge de estado — :class aplica el color según el estado del flete -->
             <td class="px-5 py-4">
               <span :class="statusClass(shipment.status)" class="px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 w-fit">
+                <!-- Punto de color al lado del texto del estado -->
                 <span class="w-2 h-2 rounded-full" :class="statusDot(shipment.status)" />
+                <!-- Texto del estado traducido al español (ej. DELIVERED → "Entregado") -->
                 {{ statusLabel(shipment.status) }}
               </span>
             </td>

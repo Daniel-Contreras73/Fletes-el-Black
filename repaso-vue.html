@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Repaso Vue — Fletes El Black</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f8f8f8;
+      color: #1a1a1a;
+      line-height: 1.6;
+    }
+
+    header {
+      background: #7F1D1D;
+      color: white;
+      padding: 2rem 3rem;
+    }
+
+    header h1 { font-size: 2rem; font-weight: 800; }
+    header p  { opacity: 0.7; margin-top: 0.3rem; }
+
+    nav {
+      background: #991B1B;
+      padding: 0.8rem 3rem;
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    nav a {
+      color: white;
+      text-decoration: none;
+      font-size: 0.85rem;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+    }
+
+    nav a:hover { opacity: 1; }
+
+    main {
+      max-width: 960px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      border-left: 5px solid #DC2626;
+    }
+
+    .card h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #7F1D1D;
+      margin-bottom: 0.3rem;
+    }
+
+    .card .tag {
+      display: inline-block;
+      background: #FEE2E2;
+      color: #DC2626;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      margin-bottom: 1rem;
+    }
+
+    .card p { color: #444; margin-bottom: 0.8rem; }
+
+    pre {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 1rem 1.2rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      overflow-x: auto;
+      margin: 0.8rem 0;
+      line-height: 1.7;
+    }
+
+    .comment { color: #6a9955; }
+    .keyword { color: #569cd6; }
+    .string  { color: #ce9178; }
+    .func    { color: #dcdcaa; }
+    .tag-html{ color: #4ec9b0; }
+    .attr    { color: #9cdcfe; }
+    .value   { color: #ce9178; }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin: 0.8rem 0;
+    }
+
+    .box {
+      background: #f9f9f9;
+      border: 1px solid #eee;
+      border-radius: 8px;
+      padding: 1rem;
+    }
+
+    .box h4 { font-size: 0.85rem; color: #999; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .file-ref {
+      display: inline-block;
+      background: #EFF6FF;
+      color: #1D4ED8;
+      font-size: 0.78rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-family: monospace;
+      margin: 0.2rem 0.1rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.8rem 0;
+      font-size: 0.9rem;
+    }
+
+    th {
+      background: #7F1D1D;
+      color: white;
+      padding: 0.6rem 1rem;
+      text-align: left;
+    }
+
+    td {
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    tr:nth-child(even) td { background: #FFF5F5; }
+
+    .rule {
+      background: #FFF7ED;
+      border: 1px solid #FED7AA;
+      border-radius: 8px;
+      padding: 0.8rem 1rem;
+      font-size: 0.9rem;
+      color: #92400E;
+      margin: 0.8rem 0;
+    }
+
+    .rule strong { color: #7C2D12; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Repaso Vue — Fletes El Black</h1>
+  <p>Todos los conceptos vistos con ejemplos del proyecto</p>
+</header>
+
+<nav>
+  <a href="#componente">Componente</a>
+  <a href="#props">Props</a>
+  <a href="#interpolacion">Interpolación</a>
+  <a href="#vmodel">v-model</a>
+  <a href="#vbind">v-bind (:)</a>
+  <a href="#von">v-on (@)</a>
+  <a href="#vif">v-if</a>
+  <a href="#vfor">v-for</a>
+  <a href="#computed">computed</a>
+  <a href="#hooks">Hooks</a>
+  <a href="#peticiones">Peticiones HTTP</a>
+  <a href="#api">api.ts</a>
+</nav>
+
+<main>
+
+  <!-- COMPONENTE -->
+  <div class="card" id="componente">
+    <div class="tag">Fundamento</div>
+    <h2>¿Qué es un componente?</h2>
+    <p>Un bloque de código reutilizable con su propio HTML, estilos y lógica en un solo archivo <code>.vue</code>. En vez de repetir el mismo código en varias páginas, lo encapsulas y lo usas donde lo necesites.</p>
+
+    <div class="two-col">
+      <div class="box">
+        <h4>Vista (pages)</h4>
+        <p>Página completa. Ej: la página de login, el dashboard.</p>
+        <span class="file-ref">LoginView.vue</span>
+        <span class="file-ref">DashboardView.vue</span>
+      </div>
+      <div class="box">
+        <h4>Componente (components)</h4>
+        <p>Pieza reutilizable dentro de una página. Ej: una tarjeta, un formulario.</p>
+        <span class="file-ref">StatCard.vue</span>
+        <span class="file-ref">ShipmentCard.vue</span>
+      </div>
+    </div>
+
+    <p>Ejemplo — en vez de escribir el HTML de la tarjeta 4 veces:</p>
+    <pre><span class="tag-html">&lt;StatCard</span> <span class="attr">title</span>=<span class="value">"Total fletes"</span> <span class="attr">:value</span>=<span class="value">"12"</span> <span class="attr">color</span>=<span class="value">"red"</span> <span class="attr">subtitle</span>=<span class="value">"registrados"</span> <span class="tag-html">/&gt;</span>
+<span class="tag-html">&lt;StatCard</span> <span class="attr">title</span>=<span class="value">"Activos"</span>      <span class="attr">:value</span>=<span class="value">"5"</span>  <span class="attr">color</span>=<span class="value">"blue"</span> <span class="attr">subtitle</span>=<span class="value">"en progreso"</span> <span class="tag-html">/&gt;</span></pre>
+  </div>
+
+  <!-- PROPS -->
+  <div class="card" id="props">
+    <div class="tag">Componentes</div>
+    <h2>Props — parámetros del componente</h2>
+    <p>Son los datos que el componente recibe desde afuera. Es igual que declarar parámetros de una función.</p>
+
+    <pre><span class="comment">// En StatCard.vue — declara qué props acepta</span>
+<span class="keyword">const</span> props = <span class="func">withDefaults</span>(
+  <span class="func">defineProps</span>&lt;{
+    title: <span class="keyword">string</span>         <span class="comment">// obligatorio</span>
+    value: <span class="keyword">string</span> | <span class="keyword">number</span>  <span class="comment">// obligatorio</span>
+    color?: <span class="string">'red'</span> | <span class="string">'blue'</span>   <span class="comment">// opcional (? = opcional)</span>
+    subtitle?: <span class="keyword">string</span>       <span class="comment">// opcional</span>
+  }&gt;(),
+  { color: <span class="string">'gray'</span> }         <span class="comment">// valor por defecto si no llega color</span>
+)</pre>
+
+    <p>Se usan en el template con interpolación o binding:</p>
+    <pre><span class="tag-html">&lt;p&gt;</span>{{ title }}<span class="tag-html">&lt;/p&gt;</span>               <span class="comment">&lt;!-- interpolación --&gt;</span>
+<span class="tag-html">&lt;p</span> <span class="attr">:class</span>=<span class="value">"colorClass"</span><span class="tag-html">&gt;</span>{{ value }}<span class="tag-html">&lt;/p&gt;</span>  <span class="comment">&lt;!-- binding --&gt;</span></pre>
+  </div>
+
+  <!-- INTERPOLACIÓN -->
+  <div class="card" id="interpolacion">
+    <div class="tag">Template</div>
+    <h2>Interpolación — {{ }}</h2>
+    <p>Muestra el valor de una variable dentro del HTML. Los dobles llaves le dicen a Vue "imprime esta variable aquí".</p>
+
+    <div class="two-col">
+      <div class="box">
+        <h4>Sin interpolación — texto fijo</h4>
+        <pre><span class="tag-html">&lt;p&gt;</span>title<span class="tag-html">&lt;/p&gt;</span>
+<span class="comment">&lt;!-- muestra: "title" literal --&gt;</span></pre>
+      </div>
+      <div class="box">
+        <h4>Con interpolación — variable</h4>
+        <pre><span class="tag-html">&lt;p&gt;</span>{{ title }}<span class="tag-html">&lt;/p&gt;</span>
+<span class="comment">&lt;!-- muestra: "Total fletes" --&gt;</span></pre>
+      </div>
+    </div>
+
+    <p>Ejemplos del proyecto <span class="file-ref">ShipmentCard.vue</span>:</p>
+    <pre>{{ shipment.folio }}       <span class="comment">→ "FL-001"</span>
+{{ statusLabel }}          <span class="comment">→ "Entregado"</span>
+{{ formattedDate }}        <span class="comment">→ "05 jun. 2026"</span>
+$\{{ shipment.totalPrice }} <span class="comment">→ "$1,200"</span></pre>
+
+    <div class="rule"><strong>Regla:</strong> los {{ }} solo van dentro del contenido HTML. Para atributos dinámicos usa <code>:</code> (v-bind).</div>
+  </div>
+
+  <!-- V-MODEL -->
+  <div class="card" id="vmodel">
+    <div class="tag">Formularios</div>
+    <h2>v-model — enlace de inputs</h2>
+    <p>Conecta un input con una variable. Lo que el usuario escribe se guarda automáticamente en la variable, y si la variable cambia el input se actualiza también.</p>
+
+    <pre><span class="tag-html">&lt;input</span> <span class="attr">v-model</span>=<span class="value">"form.email"</span> <span class="tag-html">/&gt;</span>
+<span class="comment">&lt;!-- cuando el usuario escribe, form.email se actualiza solo --&gt;</span></pre>
+
+    <p>Archivos donde se usa:</p>
+    <span class="file-ref">LoginView.vue</span>
+    <span class="file-ref">RegisterView.vue</span>
+    <span class="file-ref">LandingQuotationForm.vue</span>
+    <span class="file-ref">ShipmentsView.vue</span>
+
+    <table>
+      <tr><th>Archivo</th><th>Uso</th></tr>
+      <tr><td>LoginView.vue</td><td>v-model="form.email" / v-model="form.password"</td></tr>
+      <tr><td>ShipmentsView.vue</td><td>v-model="search" — filtra fletes en tiempo real</td></tr>
+      <tr><td>AdminShipmentsView.vue</td><td>v-model.number="newPrice" — convierte a número automáticamente</td></tr>
+    </table>
+  </div>
+
+  <!-- V-BIND -->
+  <div class="card" id="vbind">
+    <div class="tag">Template</div>
+    <h2>v-bind (:) — atributos dinámicos</h2>
+    <p>Poner <code>:</code> antes de un atributo HTML lo hace dinámico — su valor viene de una variable en vez de ser texto fijo.</p>
+
+    <div class="two-col">
+      <div class="box">
+        <h4>Sin : — texto fijo</h4>
+        <pre><span class="tag-html">&lt;span</span> <span class="attr">class</span>=<span class="value">"text-green-500"</span><span class="tag-html">&gt;</span>
+<span class="comment">&lt;!-- siempre verde --&gt;</span></pre>
+      </div>
+      <div class="box">
+        <h4>Con : — variable</h4>
+        <pre><span class="tag-html">&lt;span</span> <span class="attr">:class</span>=<span class="value">"statusClass"</span><span class="tag-html">&gt;</span>
+<span class="comment">&lt;!-- cambia según el estado --&gt;</span></pre>
+      </div>
+    </div>
+
+    <p>Funciona con cualquier atributo:</p>
+    <pre><span class="attr">:class</span>=<span class="value">"variable"</span>       <span class="comment">→ clase dinámica</span>
+<span class="attr">:src</span>=<span class="value">"urlImagen"</span>       <span class="comment">→ imagen dinámica</span>
+<span class="attr">:href</span>=<span class="value">"enlace"</span>          <span class="comment">→ link dinámico</span>
+<span class="attr">:disabled</span>=<span class="value">"loading"</span>    <span class="comment">→ desactiva botón si loading es true</span>
+<span class="attr">:style</span>=<span class="value">"estiloObj"</span>      <span class="comment">→ estilos dinámicos</span></pre>
+
+    <p>Ejemplo <span class="file-ref">ShipmentCard.vue</span>:</p>
+    <pre><span class="tag-html">&lt;span</span> <span class="attr">:class</span>=<span class="value">"statusClass"</span><span class="tag-html">&gt;</span>{{ statusLabel }}<span class="tag-html">&lt;/span&gt;</span>
+<span class="comment">&lt;!-- statusClass es un computed que devuelve bg-green-100 si está entregado, etc. --&gt;</span></pre>
+  </div>
+
+  <!-- V-ON -->
+  <div class="card" id="von">
+    <div class="tag">Eventos</div>
+    <h2>v-on (@) — escuchar eventos</h2>
+    <p>El <code>@</code> es la forma corta de <code>v-on:</code>. Ejecuta una función cuando el usuario hace algo.</p>
+
+    <table>
+      <tr><th>Evento</th><th>Cuándo se dispara</th><th>Ejemplo</th></tr>
+      <tr><td>@click</td><td>Clic del usuario</td><td>@click="handleLogin"</td></tr>
+      <tr><td>@submit.prevent</td><td>Envío de formulario</td><td>@submit.prevent="handleLogin"</td></tr>
+      <tr><td>@input</td><td>El usuario escribe</td><td>@input="onInput"</td></tr>
+      <tr><td>@change</td><td>Cambia valor de select</td><td>@change="onRoleChange"</td></tr>
+      <tr><td>@keydown.enter</td><td>Presiona Enter</td><td>@keydown.enter="selectIndex"</td></tr>
+      <tr><td>@blur</td><td>El input pierde el foco</td><td>@blur="onBlur"</td></tr>
+    </table>
+
+    <p>El <code>.stop</code> evita que el evento suba al elemento padre:</p>
+    <pre><span class="comment">&lt;!-- ShipmentCard.vue — sin .stop también se dispararía el @click del div padre --&gt;</span>
+<span class="tag-html">&lt;button</span> <span class="attr">@click.stop</span>=<span class="value">"emit('cancel', shipment.id)"</span><span class="tag-html">&gt;</span>Cancelar<span class="tag-html">&lt;/button&gt;</span></pre>
+  </div>
+
+  <!-- V-IF -->
+  <div class="card" id="vif">
+    <div class="tag">Template</div>
+    <h2>v-if — mostrar u ocultar elementos</h2>
+    <p>Muestra un elemento si la condición es <code>true</code>. Si es <code>false</code>, el elemento desaparece del HTML completamente.</p>
+
+    <pre><span class="comment">&lt;!-- StatCard.vue — solo muestra el subtítulo si viene como prop --&gt;</span>
+<span class="tag-html">&lt;p</span> <span class="attr">v-if</span>=<span class="value">"subtitle"</span><span class="tag-html">&gt;</span>{{ subtitle }}<span class="tag-html">&lt;/p&gt;</span>
+
+<span class="comment">&lt;!-- LoginView.vue — solo muestra el error si existe --&gt;</span>
+<span class="tag-html">&lt;div</span> <span class="attr">v-if</span>=<span class="value">"error"</span><span class="tag-html">&gt;</span>{{ error }}<span class="tag-html">&lt;/div&gt;</span>
+
+<span class="comment">&lt;!-- ShipmentCard.vue — solo muestra botón si el flete se puede cancelar --&gt;</span>
+<span class="tag-html">&lt;button</span> <span class="attr">v-if</span>=<span class="value">"canCancel"</span><span class="tag-html">&gt;</span>Cancelar<span class="tag-html">&lt;/button&gt;</span></pre>
+
+    <p>Con <code>v-else-if</code> y <code>v-else</code> — encadenados:</p>
+    <pre><span class="tag-html">&lt;div</span> <span class="attr">v-if</span>=<span class="value">"analyzing"</span><span class="tag-html">&gt;</span>Analizando con IA...<span class="tag-html">&lt;/div&gt;</span>
+<span class="tag-html">&lt;div</span> <span class="attr">v-else-if</span>=<span class="value">"quoting"</span><span class="tag-html">&gt;</span>Calculando precio...<span class="tag-html">&lt;/div&gt;</span>
+<span class="tag-html">&lt;div</span> <span class="attr">v-else-if</span>=<span class="value">"analyzeError"</span><span class="tag-html">&gt;</span>{{ analyzeError }}<span class="tag-html">&lt;/div&gt;</span>
+<span class="tag-html">&lt;div</span> <span class="attr">v-else</span><span class="tag-html">&gt;</span>← muestra los resultados<span class="tag-html">&lt;/div&gt;</span></pre>
+  </div>
+
+  <!-- V-FOR -->
+  <div class="card" id="vfor">
+    <div class="tag">Template</div>
+    <h2>v-for — repetir elementos</h2>
+    <p>Recorre un array y crea un elemento HTML por cada item. Siempre va acompañado de <code>:key</code>.</p>
+
+    <pre><span class="comment">&lt;!-- ShipmentsView.vue — una fila por cada flete --&gt;</span>
+<span class="tag-html">&lt;tr</span> <span class="attr">v-for</span>=<span class="value">"shipment in filtered"</span> <span class="attr">:key</span>=<span class="value">"shipment.id"</span><span class="tag-html">&gt;</span>
+  <span class="tag-html">&lt;td&gt;</span>{{ shipment.folio }}<span class="tag-html">&lt;/td&gt;</span>
+  <span class="tag-html">&lt;td&gt;</span>{{ shipment.originCity }}<span class="tag-html">&lt;/td&gt;</span>
+<span class="tag-html">&lt;/tr&gt;</span>
+
+<span class="comment">&lt;!-- StepIndicator.vue — un círculo por cada paso --&gt;</span>
+<span class="tag-html">&lt;button</span> <span class="attr">v-for</span>=<span class="value">"n in total"</span> <span class="attr">:key</span>=<span class="value">"n"</span><span class="tag-html">&gt;</span>{{ n }}<span class="tag-html">&lt;/button&gt;</span></pre>
+
+    <div class="rule">
+      <strong>:key</strong> — identificador único por elemento. Vue lo necesita para saber qué fila es cuál cuando la lista cambia. Usa siempre el <code>id</code> del objeto.
+    </div>
+  </div>
+
+  <!-- COMPUTED -->
+  <div class="card" id="computed">
+    <div class="tag">Script</div>
+    <h2>computed — valores calculados automáticos</h2>
+    <p>Calcula un valor a partir de otras variables. Se recalcula solo cuando esas variables cambian. Tiene caché — si los datos no cambiaron, no recalcula.</p>
+
+    <div class="two-col">
+      <div class="box">
+        <h4>Función normal</h4>
+        <pre><span class="comment">// Se ejecuta cada vez
+// aunque el resultado sea igual</span>
+<span class="keyword">function</span> <span class="func">getColor</span>() {
+  <span class="keyword">return</span> props.color === <span class="string">'red'</span>
+    ? <span class="string">'text-red-500'</span>
+    : <span class="string">'text-gray-800'</span>
+}</pre>
+      </div>
+      <div class="box">
+        <h4>computed</h4>
+        <pre><span class="comment">// Se recalcula solo cuando
+// props.color cambia</span>
+<span class="keyword">const</span> colorClass = <span class="func">computed</span>(() => ({
+  <span class="string">'text-red-500'</span>: props.color === <span class="string">'red'</span>,
+  <span class="string">'text-gray-800'</span>: props.color === <span class="string">'gray'</span>
+}))</pre>
+      </div>
+    </div>
+
+    <p>Ejemplos del proyecto:</p>
+    <table>
+      <tr><th>Archivo</th><th>computed</th><th>Qué calcula</th></tr>
+      <tr><td>StatCard.vue</td><td>colorClass</td><td>Clase CSS según el prop color</td></tr>
+      <tr><td>ShipmentCard.vue</td><td>statusLabel</td><td>Texto del estado en español</td></tr>
+      <tr><td>ShipmentCard.vue</td><td>statusClass</td><td>Color del badge según el estado</td></tr>
+      <tr><td>ShipmentCard.vue</td><td>canCancel</td><td>Si el flete se puede cancelar</td></tr>
+      <tr><td>DashboardView.vue</td><td>countClients</td><td>Cuenta clientes del array de usuarios</td></tr>
+      <tr><td>DashboardView.vue</td><td>today</td><td>Fecha de hoy formateada en español</td></tr>
+    </table>
+  </div>
+
+  <!-- HOOKS -->
+  <div class="card" id="hooks">
+    <div class="tag">Ciclo de vida</div>
+    <h2>Hooks — ciclo de vida del componente</h2>
+    <p>Funciones que Vue ejecuta automáticamente en momentos específicos, sin que el usuario haga nada.</p>
+
+    <pre><span class="comment">// DashboardView.vue — carga datos al entrar a la página</span>
+<span class="func">onMounted</span>(() => {
+  <span class="keyword">if</span> (auth.isAdmin) {
+    usersStore.<span class="func">fetchAll</span>()       <span class="comment">// admin → carga todos los usuarios</span>
+  } <span class="keyword">else</span> {
+    shipmentsStore.<span class="func">fetchMine</span>()  <span class="comment">// cliente → carga sus fletes</span>
+  }
+})</pre>
+
+    <pre><span class="comment">// LandingView.vue — arranca y detiene el carrusel</span>
+<span class="func">onMounted</span>(() => { timer = <span class="func">setInterval</span>(next, 5000) })
+<span class="func">onUnmounted</span>(() => <span class="func">clearInterval</span>(timer))
+<span class="comment">// sin onUnmounted el carrusel seguiría en memoria aunque el usuario salga</span></pre>
+
+    <table>
+      <tr><th>Hook</th><th>Cuándo se ejecuta</th><th>Para qué se usa</th></tr>
+      <tr><td>onMounted</td><td>Al aparecer en pantalla</td><td>Cargar datos del backend</td></tr>
+      <tr><td>onUnmounted</td><td>Al salir de la página</td><td>Limpiar timers, intervalos</td></tr>
+    </table>
+
+    <div class="rule">
+      <strong>Diferencia con @click:</strong> los hooks los ejecuta Vue automáticamente. Los eventos (@click, @input) los dispara el usuario.
+    </div>
+  </div>
+
+  <!-- PETICIONES HTTP -->
+  <div class="card" id="peticiones">
+    <div class="tag">Backend</div>
+    <h2>Peticiones HTTP — hablar con el backend</h2>
+    <p>El frontend no puede tocar la base de datos directamente. Le pide los datos al backend mediante peticiones HTTP.</p>
+
+    <pre><span class="comment">// fetch — forma nativa del navegador</span>
+<span class="keyword">const</span> res = <span class="keyword">await</span> <span class="func">fetch</span>(<span class="string">'/api/quote/analyze'</span>, {
+  method: <span class="string">'POST'</span>,
+  headers: { <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span> },
+  body: <span class="func">JSON.stringify</span>({ images, zone })
+})
+<span class="keyword">const</span> data = <span class="keyword">await</span> res.<span class="func">json</span>()  <span class="comment">// segundo await — convierte la respuesta a objeto</span></pre>
+
+    <div class="two-col">
+      <div class="box">
+        <h4>fetch directo — rutas públicas</h4>
+        <p>Sin token. Para páginas que no requieren login.</p>
+        <span class="file-ref">LandingQuotationForm.vue</span>
+        <span class="file-ref">AddressAutocomplete.vue</span>
+      </div>
+      <div class="box">
+        <h4>api.ts (axios) — rutas privadas</h4>
+        <p>Con token automático. Para páginas que requieren login.</p>
+        <span class="file-ref">DestinationsView.vue</span>
+        <span class="file-ref">PaymentsView.vue</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- API.TS -->
+  <div class="card" id="api">
+    <div class="tag">Servicios</div>
+    <h2>api.ts — mensajero configurado</h2>
+    <p>Crea una instancia de axios con 3 reglas automáticas para no repetir configuración en cada archivo.</p>
+
+    <pre><span class="keyword">const</span> api = axios.<span class="func">create</span>({
+  baseURL: <span class="string">'http://localhost:3000/api'</span>,  <span class="comment">// regla 1: siempre va aquí</span>
+  withCredentials: <span class="keyword">true</span>
+})
+
+<span class="comment">// Regla 2: agrega el token antes de cada petición</span>
+api.interceptors.request.<span class="func">use</span>((config) => {
+  <span class="keyword">const</span> token = localStorage.<span class="func">getItem</span>(<span class="string">'accessToken'</span>)
+  <span class="keyword">if</span> (token) config.headers.Authorization = <span class="string">`Bearer ${token}`</span>
+  <span class="keyword">return</span> config
+})
+
+<span class="comment">// Regla 3: si el token expiró (401), pide uno nuevo y reintenta</span>
+<span class="comment">// Si falla → borra sesión y manda al login</span></pre>
+
+    <p>Cómo se usa en las vistas:</p>
+    <pre><span class="keyword">import</span> api <span class="keyword">from</span> <span class="string">'@/services/api'</span>
+
+<span class="keyword">const</span> { data } = <span class="keyword">await</span> api.<span class="func">get</span>(<span class="string">'/destinations'</span>)     <span class="comment">// GET</span>
+<span class="keyword">await</span> api.<span class="func">post</span>(<span class="string">'/destinations'</span>, form.value)          <span class="comment">// POST</span>
+<span class="keyword">await</span> api.<span class="func">patch</span>(<span class="string">`/destinations/${id}/default`</span>)      <span class="comment">// PATCH</span>
+<span class="keyword">await</span> api.<span class="func">delete</span>(<span class="string">`/destinations/${id}`</span>)              <span class="comment">// DELETE</span></pre>
+  </div>
+
+  <!-- RESUMEN FINAL -->
+  <div class="card">
+    <div class="tag">Resumen</div>
+    <h2>Tabla resumen de todo</h2>
+    <table>
+      <tr><th>Concepto</th><th>Para qué sirve</th><th>Ejemplo en el proyecto</th></tr>
+      <tr><td>Componente</td><td>Bloque reutilizable</td><td>StatCard, ShipmentCard</td></tr>
+      <tr><td>Props</td><td>Parámetros del componente</td><td>title, value, color en StatCard</td></tr>
+      <tr><td>{{ }}</td><td>Mostrar variable en HTML</td><td>{{ shipment.folio }}</td></tr>
+      <tr><td>v-model</td><td>Enlazar input con variable</td><td>v-model="form.email"</td></tr>
+      <tr><td>: (v-bind)</td><td>Atributo dinámico</td><td>:class="statusClass"</td></tr>
+      <tr><td>@ (v-on)</td><td>Escuchar evento del usuario</td><td>@click="handleLogin"</td></tr>
+      <tr><td>v-if</td><td>Mostrar/ocultar elemento</td><td>v-if="canCancel"</td></tr>
+      <tr><td>v-for</td><td>Repetir elementos de un array</td><td>v-for="shipment in filtered"</td></tr>
+      <tr><td>computed</td><td>Valor calculado automático</td><td>statusClass, countClients</td></tr>
+      <tr><td>onMounted</td><td>Ejecutar al cargar la página</td><td>fetchAll(), fetchMine()</td></tr>
+      <tr><td>onUnmounted</td><td>Limpiar al salir</td><td>clearInterval(timer)</td></tr>
+      <tr><td>fetch</td><td>Petición HTTP sin token</td><td>LandingQuotationForm</td></tr>
+      <tr><td>api.ts</td><td>Petición HTTP con token</td><td>DestinationsView, PaymentsView</td></tr>
+    </table>
+  </div>
+
+</main>
+
+</body>
+</html>
